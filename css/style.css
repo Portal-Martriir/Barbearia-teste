@@ -2138,20 +2138,16 @@ textarea:focus {
 
   .auth-tab-wrap {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     padding: 6px;
     margin: 8px 0 12px;
   }
 
-  .auth-tab-wrap .auth-tab-btn:nth-child(3) {
-    grid-column: 1 / -1;
-  }
-
   .auth-tab-btn {
     min-height: 44px;
-    padding: 9px 10px;
-    font-size: 12px;
+    padding: 8px 6px;
+    font-size: 11px;
   }
 
   .auth-form {
