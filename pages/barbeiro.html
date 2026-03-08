@@ -70,15 +70,13 @@
                   <option value="personalizado">Periodo personalizado</option>
                 </select>
               </label>
-              <label id="barbeiro-ref-wrap" hidden>Data de referencia
-                <input id="agenda-data-barbeiro" type="date" />
-              </label>
               <label id="barbeiro-data-inicio-wrap" hidden>Data inicial
                 <input id="agenda-data-inicio-barbeiro" type="date" />
               </label>
               <label id="barbeiro-data-fim-wrap" hidden>Data final
                 <input id="agenda-data-fim-barbeiro" type="date" />
               </label>
+              <button id="btn-aplicar-filtro-barbeiro" type="button" class="btn-primary">Aplicar filtro</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -100,25 +98,6 @@
           </div>
         </section>
 
-        <section class="card">
-          <h3>Historico de atendimentos</h3>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Servico</th>
-                  <th>Valor</th>
-                  <th>Data</th>
-                  <th>Status</th>
-                  <th>Motivo</th>
-                  <th>Status pagamento</th>
-                </tr>
-              </thead>
-              <tbody id="historico-barbeiro-body"></tbody>
-            </table>
-          </div>
-        </section>
       </main>
     </div>
   </div>

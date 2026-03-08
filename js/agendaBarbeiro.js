@@ -6,23 +6,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   await window.Api.runAutoCompletion();
 
   const info = document.getElementById('agenda-barbeiro-info');
-  const agendaDataInput = document.getElementById('agenda-data-barbeiro');
+  const agendaDataInicioInput = document.getElementById('agenda-data-inicio-barbeiro');
+  const agendaDataFimInput = document.getElementById('agenda-data-fim-barbeiro');
   const periodoSelect = document.getElementById('agenda-periodo-barbeiro');
+  const inicioWrap = document.getElementById('agenda-barbeiro-inicio-wrap');
+  const fimWrap = document.getElementById('agenda-barbeiro-fim-wrap');
+  const aplicarFiltroBtn = document.getElementById('btn-aplicar-filtro-agenda-barbeiro');
   const agendaBody = document.getElementById('lista-agenda-barbeiro');
+  const historicoBody = document.getElementById('historico-barbeiro-body');
+  const tabButtons = document.querySelectorAll('[data-agenda-barbeiro-tab]');
+  const panelAgendamentos = document.getElementById('agenda-barbeiro-panel-agendamentos');
+  const panelRegistro = document.getElementById('agenda-barbeiro-panel-registro');
 
-  if (!agendaDataInput || !periodoSelect || !agendaBody) {
+  if (!agendaDataInicioInput || !agendaDataFimInput || !periodoSelect || !aplicarFiltroBtn || !agendaBody || !historicoBody || !panelAgendamentos || !panelRegistro) {
     window.AppUtils.notify(info, 'Elementos da agenda nao encontrados.', true);
     return;
   }
 
-  agendaDataInput.value = window.AppUtils.todayISO();
+  const hojeISO = window.AppUtils.todayISO();
+  agendaDataInicioInput.value = hojeISO;
+  agendaDataFimInput.value = hojeISO;
 
   function toDateOnly(value) {
     return new Date(`${value}T00:00:00`);
   }
 
-  function periodRange(periodo, refDateISO) {
-    const ref = toDateOnly(refDateISO || window.AppUtils.todayISO());
+  function showDateFilters() {
+    const periodo = periodoSelect.value || 'dia';
+    const custom = periodo === 'personalizado';
+
+    if (inicioWrap) inicioWrap.hidden = !custom;
+    if (fimWrap) fimWrap.hidden = !custom;
+  }
+
+  function periodRange(periodo) {
+    if (periodo === 'personalizado') {
+      const inicioCustom = agendaDataInicioInput.value;
+      const fimCustom = agendaDataFimInput.value;
+
+      if (!inicioCustom || !fimCustom) {
+        throw new Error('Informe data inicial e data final para o periodo personalizado.');
+      }
+
+      const inicioDate = toDateOnly(inicioCustom);
+      const fimDate = toDateOnly(fimCustom);
+      if (inicioDate > fimDate) {
+        throw new Error('A data inicial nao pode ser maior que a data final.');
+      }
+
+      return {
+        inicioISO: inicioDate.toISOString().slice(0, 10),
+        fimISO: fimDate.toISOString().slice(0, 10)
+      };
+    }
+
+    const ref = toDateOnly(hojeISO);
     const inicio = new Date(ref);
     const fim = new Date(ref);
 
@@ -52,17 +90,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     return data?.id || null;
   }
 
+  function setTab(tab) {
+    tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.agendaBarbeiroTab === tab));
+    panelAgendamentos.classList.toggle('active', tab === 'agendamentos');
+    panelRegistro.classList.toggle('active', tab === 'registro');
+  }
+
+  tabButtons.forEach((btn) => btn.addEventListener('click', () => setTab(btn.dataset.agendaBarbeiroTab)));
+
   function actionsHtml(row) {
     if (['concluido', 'cancelado', 'desistencia_cliente'].includes(row.status)) return '-';
 
     const buttons = [];
-    if (row.status === 'agendado') {
-      buttons.push(`<button class="btn-secondary" data-action="iniciar" data-id="${row.id}">Iniciar</button>`);
-    }
-    buttons.push(`<button class="btn-secondary" data-action="concluir" data-id="${row.id}">Concluir</button>`);
     buttons.push(`<button class="btn-danger" data-action="cancelar" data-id="${row.id}">Cancelar</button>`);
     buttons.push(`<button class="btn-warning" data-action="desistencia" data-id="${row.id}">Desistencia</button>`);
     return `<div class="action-wrap">${buttons.join('')}</div>`;
+  }
+
+  function formatMotivo(row) {
+    if (row.status !== 'cancelado' && row.status !== 'desistencia_cliente') return '-';
+    const motivo = String(row.motivo_cancelamento || '').trim();
+    return motivo || '-';
   }
 
   async function updateStatus(id, nextStatus) {
@@ -89,10 +137,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'dia', agendaDataInput.value);
+    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'dia');
     const { data: rows, error } = await window.sb
       .from('agendamentos')
-      .select('id, data, hora_inicio, hora_fim, status, pagamento_pendente, clientes(nome), servicos(nome)')
+      .select(`
+        id,
+        data,
+        hora_inicio,
+        hora_fim,
+        status,
+        pagamento_pendente,
+        valor,
+        motivo_cancelamento,
+        clientes!agendamentos_cliente_id_fkey(nome),
+        servicos(nome)
+      `)
       .eq('barbeiro_id', barbeiroId)
       .gte('data', inicioISO)
       .lte('data', fimISO)
@@ -115,17 +174,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         `).join('');
   }
 
+  async function loadHistorico(barbeiroId) {
+    if (!barbeiroId) {
+      historicoBody.innerHTML = '<tr><td colspan="7">Sem historico.</td></tr>';
+      return;
+    }
+
+    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'dia');
+    const { data: rows, error } = await window.sb
+      .from('agendamentos')
+      .select(`
+        id,
+        data,
+        status,
+        pagamento_pendente,
+        valor,
+        motivo_cancelamento,
+        clientes!agendamentos_cliente_id_fkey(nome),
+        servicos(nome)
+      `)
+      .eq('barbeiro_id', barbeiroId)
+      .gte('data', inicioISO)
+      .lte('data', fimISO)
+      .order('data', { ascending: false });
+    if (error) throw error;
+
+    const historico = (rows || []).filter((r) => ['concluido', 'cancelado', 'desistencia_cliente'].includes(r.status));
+    historicoBody.innerHTML = historico.length === 0
+      ? '<tr><td colspan="7">Sem historico.</td></tr>'
+      : historico.map((r) => `
+          <tr>
+            <td>${r.clientes?.nome || '-'}</td>
+            <td>${r.servicos?.nome || '-'}</td>
+            <td>${window.AppUtils.formatMoney(r.valor)}</td>
+            <td>${window.AppUtils.formatDate(r.data)}</td>
+            <td><span class="badge ${r.status}">${r.status}</span></td>
+            <td>${formatMotivo(r)}</td>
+            <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
+          </tr>
+        `).join('');
+  }
+
   let barbeiroId = null;
 
   async function refresh() {
-    await loadAgenda(barbeiroId);
+    await Promise.all([
+      loadAgenda(barbeiroId),
+      loadHistorico(barbeiroId)
+    ]);
   }
 
-  agendaDataInput.addEventListener('change', () => {
-    refresh().catch((err) => window.AppUtils.notify(info, err.message, true));
+  periodoSelect.addEventListener('change', () => {
+    showDateFilters();
   });
 
-  periodoSelect.addEventListener('change', () => {
+  aplicarFiltroBtn.addEventListener('click', () => {
     refresh().catch((err) => window.AppUtils.notify(info, err.message, true));
   });
 
@@ -134,11 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
 
     try {
-      if (btn.dataset.action === 'iniciar') {
-        await updateStatus(btn.dataset.id, 'em_atendimento');
-      } else if (btn.dataset.action === 'concluir') {
-        await updateStatus(btn.dataset.id, 'concluido');
-      } else if (btn.dataset.action === 'cancelar') {
+      if (btn.dataset.action === 'cancelar') {
         const ok = window.confirm('Confirma cancelamento deste atendimento?');
         if (!ok) return;
         await updateStatus(btn.dataset.id, 'cancelado');
@@ -156,6 +255,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   try {
+    showDateFilters();
+    setTab('agendamentos');
     barbeiroId = await getMeuBarbeiroId();
     await refresh();
     if (!barbeiroId) {

@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const info = document.getElementById('dashboard-info');
   const periodoSelect = document.getElementById('dashboard-periodo');
+  const seriesChart = document.getElementById('dashboard-chart-series');
+  const rankingChart = document.getElementById('dashboard-chart-ranking');
 
   const cards = {
     totalFaturado: document.getElementById('total-faturado-hoje'),
@@ -19,8 +21,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     liquidoHoje: document.getElementById('dashboard-liquido-hoje')
   };
 
-  const listProximos = document.getElementById('dashboard-proximos');
-  const listContas = document.getElementById('dashboard-contas-lista');
+  function formatShortDate(isoDate) {
+    return new Date(`${isoDate}T00:00:00`).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit'
+    });
+  }
+
+  function renderSeriesChart(points) {
+    if (!seriesChart) return;
+    if (!points.length) {
+      seriesChart.innerHTML = '<div class="chart-series-empty">Sem movimentacao para exibir no periodo.</div>';
+      return;
+    }
+
+    const maxValue = Math.max(
+      ...points.flatMap((point) => [point.receita, point.comissao, point.liquido]),
+      1
+    );
+
+    const legend = `
+      <div class="chart-legend">
+        <span class="chart-legend-item"><span class="chart-legend-swatch series-receita"></span>Receita</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch series-comissao"></span>Comissoes</span>
+        <span class="chart-legend-item"><span class="chart-legend-swatch series-liquido"></span>Lucro liquido</span>
+      </div>
+    `;
+
+    const bars = points.map((point) => {
+      const receitaHeight = Math.max(10, (point.receita / maxValue) * 100);
+      const comissaoHeight = Math.max(10, (point.comissao / maxValue) * 100);
+      const liquidoHeight = Math.max(10, (point.liquido / maxValue) * 100);
+
+      return `
+        <div class="chart-group" title="${point.label}">
+          <div class="chart-group-bars">
+            <div class="chart-bar series-receita" style="height:${receitaHeight}%;" title="Receita: ${window.AppUtils.formatMoney(point.receita)}"></div>
+            <div class="chart-bar series-comissao" style="height:${comissaoHeight}%;" title="Comissoes: ${window.AppUtils.formatMoney(point.comissao)}"></div>
+            <div class="chart-bar series-liquido" style="height:${liquidoHeight}%;" title="Lucro liquido: ${window.AppUtils.formatMoney(point.liquido)}"></div>
+          </div>
+          <div class="chart-group-label">${point.shortLabel}</div>
+        </div>
+      `;
+    }).join('');
+
+    seriesChart.innerHTML = `${legend}<div class="chart-bars">${bars}</div>`;
+  }
+
+  function renderRankingChart(rows) {
+    if (!rankingChart) return;
+    if (!rows.length) {
+      rankingChart.innerHTML = '<div class="chart-ranking-empty">Sem barbeiros com faturamento no periodo.</div>';
+      return;
+    }
+
+    const maxValue = Math.max(...rows.map((row) => row.total), 1);
+    rankingChart.innerHTML = rows.map((row) => {
+      const width = Math.max(8, (row.total / maxValue) * 100);
+      return `
+        <div class="chart-ranking-row">
+          <div class="chart-ranking-name" title="${row.nome}">${row.nome}</div>
+          <div class="chart-ranking-track">
+            <div class="chart-ranking-fill" style="width:${width}%;"></div>
+          </div>
+          <div class="chart-ranking-value">${window.AppUtils.formatMoney(row.total)}</div>
+        </div>
+      `;
+    }).join('');
+  }
 
   function periodBounds(tipo) {
     const hoje = new Date();
@@ -90,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const totalFaturado = finPagos.reduce((acc, r) => acc + Number(r.valor_servico || 0), 0);
     const totalComissoes = finPagos.reduce((acc, r) => acc + Number(r.comissao_barbeiro || 0), 0);
     const totalDespesas = despRows.reduce((acc, r) => acc + Number(r.valor || 0), 0);
-    const totalLiquido = totalFaturado - totalComissoes - totalDespesas;
+    const totalLiquido = totalFaturado - totalComissoes;
 
     const atendimentosConcluidos = agRows.filter((a) => a.status === 'concluido').length;
     const agendamentosPeriodo = agRows.length;
@@ -106,6 +174,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     const totalContas = finPendentes.reduce((acc, r) => acc + Number(r.valor_servico || 0), 0)
       + contasManuais.reduce((acc, r) => acc + Number(r.valor || 0), 0);
 
+    const groupedByDate = new Map();
+    const allDates = new Set([
+      ...agRows.map((row) => row.data),
+      ...finRows.map((row) => row.data),
+      ...despRows.map((row) => row.data)
+    ]);
+
+    Array.from(allDates)
+      .sort()
+      .forEach((date) => {
+        groupedByDate.set(date, {
+          label: window.AppUtils.formatDate(date),
+          shortLabel: formatShortDate(date),
+          receita: 0,
+          comissao: 0,
+          liquido: 0
+        });
+      });
+
+    finPagos.forEach((row) => {
+      const bucket = groupedByDate.get(row.data);
+      if (!bucket) return;
+      bucket.receita += Number(row.valor_servico || 0);
+      bucket.comissao += Number(row.comissao_barbeiro || 0);
+      bucket.liquido += Number(row.valor_servico || 0) - Number(row.comissao_barbeiro || 0);
+    });
+
+    const rankingRows = Object.entries(porBarbeiro)
+      .map(([nome, total]) => ({ nome, total }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+
     cards.totalFaturado.textContent = window.AppUtils.formatMoney(totalFaturado);
     cards.atendimentos.textContent = String(atendimentosConcluidos);
     cards.agendamentos.textContent = String(agendamentosPeriodo);
@@ -114,56 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     cards.despesasHoje.textContent = window.AppUtils.formatMoney(totalDespesas);
     cards.comissoesHoje.textContent = window.AppUtils.formatMoney(totalComissoes);
     cards.liquidoHoje.textContent = window.AppUtils.formatMoney(totalLiquido);
-
-    const proximos = agRows
-      .filter((a) => a.status === 'agendado' || a.status === 'em_atendimento')
-      .slice(0, 12);
-
-    listProximos.innerHTML = proximos.length
-      ? proximos.map((a) => `
-          <tr>
-            <td>${window.AppUtils.formatDate(a.data)}</td>
-            <td>${String(a.hora_inicio || '').slice(0, 5)}</td>
-            <td>${a.clientes?.nome || '-'}</td>
-            <td>${a.barbeiros?.nome || '-'}</td>
-            <td>${a.servicos?.nome || '-'}</td>
-            <td><span class="badge ${a.status}">${a.status}</span></td>
-          </tr>
-        `).join('')
-      : '<tr><td colspan="6">Sem agendamentos no periodo.</td></tr>';
-
-    const contasServicos = finPendentes.slice(0, 12).map((r) => ({
-      origem: 'Servico',
-      data: r.data,
-      descricao: r.agendamentos?.clientes?.nome || r.agendamentos?.servicos?.nome || '-',
-      valor: Number(r.valor_servico || 0),
-      status: 'pendente'
-    }));
-
-    const contasRows = [
-      ...contasServicos,
-      ...contasManuais.map((r) => ({
-        origem: 'Manual',
-        data: r.data,
-        descricao: r.descricao || '-',
-        valor: Number(r.valor || 0),
-        status: r.status || 'pendente'
-      }))
-    ]
-      .sort((a, b) => String(b.data).localeCompare(String(a.data)))
-      .slice(0, 12);
-
-    listContas.innerHTML = contasRows.length
-      ? contasRows.map((c) => `
-          <tr>
-            <td>${c.origem}</td>
-            <td>${window.AppUtils.formatDate(c.data)}</td>
-            <td>${c.descricao}</td>
-            <td>${window.AppUtils.formatMoney(c.valor)}</td>
-            <td><span class="badge pendente">${c.status}</span></td>
-          </tr>
-        `).join('')
-      : '<tr><td colspan="5">Sem contas a receber.</td></tr>';
+    renderSeriesChart(Array.from(groupedByDate.values()));
+    renderRankingChart(rankingRows);
   }
 
   periodoSelect.addEventListener('change', () => {

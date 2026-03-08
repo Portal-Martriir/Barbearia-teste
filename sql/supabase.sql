@@ -21,6 +21,7 @@ drop function if exists public.fn_meu_barbeiro_id() cascade;
 drop function if exists public.obter_configuracao_agenda_publica() cascade;
 drop function if exists public.definir_usuario_como_barbeiro(uuid, text, text, numeric) cascade;
 drop function if exists public.registrar_cliente_auth(text, text, text) cascade;
+drop function if exists public.admin_atualizar_usuario_cadastro(uuid, text, text, text, date) cascade;
 drop function if exists public.garantir_admin_como_barbeiro() cascade;
 
 drop table if exists public.financeiro cascade;
@@ -47,6 +48,8 @@ create table public.usuarios (
   id uuid primary key references auth.users(id) on delete cascade,
   email text,
   nome text not null,
+  telefone text,
+  data_nascimento date,
   perfil text not null check (perfil in ('admin', 'barbeiro', 'cliente')),
   ativo boolean not null default true,
   created_at timestamptz not null default now()
@@ -84,6 +87,8 @@ create table public.barbeiro_horarios (
   dia_semana integer not null check (dia_semana >= 0 and dia_semana <= 6),
   ativo boolean not null default true,
   hora_inicio time,
+  hora_intervalo_inicio time,
+  hora_intervalo_fim time,
   hora_fim time,
   intervalo_minutos integer default 30 check (intervalo_minutos is null or (intervalo_minutos > 0 and intervalo_minutos <= 120)),
   created_at timestamptz not null default now(),
@@ -94,6 +99,17 @@ create table public.barbeiro_horarios (
       hora_inicio is not null
       and hora_fim is not null
       and hora_inicio < hora_fim
+    )
+  ),
+  check (
+    hora_intervalo_inicio is null
+    or hora_intervalo_fim is null
+    or (
+      hora_inicio is not null
+      and hora_fim is not null
+      and hora_inicio < hora_intervalo_inicio
+      and hora_intervalo_inicio < hora_intervalo_fim
+      and hora_intervalo_fim < hora_fim
     )
   )
 );
@@ -561,6 +577,15 @@ for insert with check (
 create policy clientes_select_self_or_admin on public.clientes
 for select using (
   public.fn_is_admin()
+  or (
+    public.fn_is_barbeiro()
+    and exists (
+      select 1
+      from public.agendamentos a
+      where a.cliente_id = clientes.id
+        and a.barbeiro_id = public.fn_meu_barbeiro_id()
+    )
+  )
   or auth.uid() = id
 );
 
@@ -1049,6 +1074,76 @@ begin
 end;
 $$;
 
+create or replace function public.admin_atualizar_usuario_cadastro(
+  p_usuario_id uuid,
+  p_nome text,
+  p_email text default null,
+  p_telefone text default null,
+  p_data_nascimento date default null
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth
+as $$
+declare
+  v_is_admin boolean;
+  v_nome text;
+  v_email text;
+  v_telefone text;
+begin
+  select public.fn_is_admin() into v_is_admin;
+  if not v_is_admin then
+    raise exception 'Apenas admin pode atualizar usuarios';
+  end if;
+
+  v_nome := nullif(trim(coalesce(p_nome, '')), '');
+  if v_nome is null then
+    raise exception 'Nome do usuario e obrigatorio';
+  end if;
+
+  v_email := nullif(trim(coalesce(p_email, '')), '');
+  if v_email is null then
+    raise exception 'Email do usuario e obrigatorio';
+  end if;
+
+  v_telefone := nullif(trim(coalesce(p_telefone, '')), '');
+
+  update public.usuarios
+  set nome = v_nome,
+      email = v_email,
+      telefone = v_telefone,
+      data_nascimento = p_data_nascimento
+  where id = p_usuario_id;
+
+  if not found then
+    raise exception 'Usuario nao encontrado';
+  end if;
+
+  update auth.users
+  set email = v_email,
+      raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+        || jsonb_build_object(
+          'nome', v_nome,
+          'telefone', coalesce(v_telefone, ''),
+          'data_nascimento', coalesce(p_data_nascimento::text, '')
+        )
+  where id = p_usuario_id;
+
+  update public.clientes
+  set nome = v_nome,
+      telefone = v_telefone
+  where id = p_usuario_id;
+
+  update public.barbeiros
+  set nome = v_nome,
+      telefone = v_telefone
+  where usuario_id = p_usuario_id;
+
+  return true;
+end;
+$$;
+
 create or replace function public.garantir_admin_como_barbeiro()
 returns uuid
 language plpgsql
@@ -1124,14 +1219,10 @@ declare
   v_duracao integer;
   v_cursor time;
   v_dow integer;
-  v_tem_regra_dia boolean := false;
-  v_loja_ativo boolean;
-  v_loja_inicio time;
-  v_loja_fim time;
-  v_loja_intervalo integer;
-  v_dia_fechado boolean;
   v_h_ativo boolean;
   v_h_inicio time;
+  v_h_intervalo_inicio time;
+  v_h_intervalo_fim time;
   v_h_fim time;
   v_h_intervalo integer;
 begin
@@ -1145,68 +1236,26 @@ begin
     raise exception 'Servico obrigatorio';
   end if;
 
-  select c.hora_abertura, c.hora_fechamento, c.intervalo_minutos
-  into v_abertura, v_fechamento, v_intervalo
-  from public.configuracao_agenda c
-  where c.id = 1;
-
-  if v_abertura is null or v_fechamento is null or v_intervalo is null then
-    v_abertura := '09:00'::time;
-    v_fechamento := '19:00'::time;
-    v_intervalo := 30;
-  end if;
-
-  select ld.ativo, ld.hora_inicio, ld.hora_fim, ld.intervalo_minutos
-  into v_loja_ativo, v_loja_inicio, v_loja_fim, v_loja_intervalo
-  from public.loja_horarios_data ld
-  where ld.data = p_data
-  limit 1;
-
-  if found then
-    v_tem_regra_dia := true;
-    if not coalesce(v_loja_ativo, false) then
-      return;
-    end if;
-    v_abertura := coalesce(v_loja_inicio, v_abertura);
-    v_fechamento := coalesce(v_loja_fim, v_fechamento);
-    v_intervalo := coalesce(v_loja_intervalo, v_intervalo);
-  end if;
-
-  v_passo := make_interval(mins => v_intervalo);
-
   v_dow := extract(dow from p_data)::integer;
-  if not v_tem_regra_dia then
-    select ldf.fechado
-    into v_dia_fechado
-    from public.loja_dias_fechados ldf
-    where ldf.dia_semana = v_dow
-    limit 1;
-
-    if coalesce(v_dia_fechado, false) then
-      return;
-    end if;
-  end if;
-
-  select h.ativo, h.hora_inicio, h.hora_fim, h.intervalo_minutos
-  into v_h_ativo, v_h_inicio, v_h_fim, v_h_intervalo
+  select h.ativo, h.hora_inicio, h.hora_intervalo_inicio, h.hora_intervalo_fim, h.hora_fim, h.intervalo_minutos
+  into v_h_ativo, v_h_inicio, v_h_intervalo_inicio, v_h_intervalo_fim, v_h_fim, v_h_intervalo
   from public.barbeiro_horarios h
   where h.barbeiro_id = p_barbeiro_id
     and h.dia_semana = v_dow
   limit 1;
 
-  if found then
-    if not coalesce(v_h_ativo, false) then
-      return;
-    end if;
-    if v_h_inicio is not null then
-      v_abertura := greatest(v_abertura, v_h_inicio);
-    end if;
-    if v_h_fim is not null then
-      v_fechamento := least(v_fechamento, v_h_fim);
-    end if;
-    v_intervalo := coalesce(v_h_intervalo, v_intervalo);
-    v_passo := make_interval(mins => v_intervalo);
+  if not found then
+    return;
   end if;
+
+  if not coalesce(v_h_ativo, false) then
+    return;
+  end if;
+
+  v_abertura := coalesce(v_h_inicio, '09:00'::time);
+  v_fechamento := coalesce(v_h_fim, '19:00'::time);
+  v_intervalo := coalesce(v_h_intervalo, 30);
+  v_passo := make_interval(mins => v_intervalo);
 
   if v_abertura >= v_fechamento then
     return;
@@ -1223,6 +1272,16 @@ begin
 
   v_cursor := v_abertura;
   while (v_cursor + make_interval(mins => v_duracao)) <= v_fechamento loop
+    if (
+      v_h_intervalo_inicio is not null
+      and v_h_intervalo_fim is not null
+      and v_cursor < v_h_intervalo_fim
+      and (v_cursor + make_interval(mins => v_duracao))::time > v_h_intervalo_inicio
+    ) then
+      v_cursor := greatest((v_cursor + v_passo)::time, v_h_intervalo_fim);
+      continue;
+    end if;
+
     if not exists (
       select 1
       from public.agendamentos a
@@ -1388,5 +1447,6 @@ grant execute on function public.listar_meus_agendamentos() to authenticated;
 grant execute on function public.cancelar_agendamento_cliente(uuid) to authenticated;
 grant execute on function public.definir_usuario_como_barbeiro(uuid, text, text, numeric) to authenticated;
 grant execute on function public.definir_usuario_como_cliente(uuid) to authenticated;
+grant execute on function public.admin_atualizar_usuario_cadastro(uuid, text, text, text, date) to authenticated;
 grant execute on function public.garantir_admin_como_barbeiro() to authenticated;
 grant execute on function public.obter_configuracao_agenda_publica() to anon, authenticated;

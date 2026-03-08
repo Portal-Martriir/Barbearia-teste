@@ -20,6 +20,8 @@ declare
   v_dow integer;
   v_h_ativo boolean;
   v_h_inicio time;
+  v_h_intervalo_inicio time;
+  v_h_intervalo_fim time;
   v_h_fim time;
   v_h_intervalo integer;
 begin
@@ -33,36 +35,26 @@ begin
     raise exception 'Servico obrigatorio';
   end if;
 
-  select c.hora_abertura, c.hora_fechamento, c.intervalo_minutos
-  into v_abertura, v_fechamento, v_intervalo
-  from public.configuracao_agenda c
-  where c.id = 1;
-
-  if v_abertura is null or v_fechamento is null or v_intervalo is null then
-    v_abertura := '09:00'::time;
-    v_fechamento := '19:00'::time;
-    v_intervalo := 30;
-  end if;
-
-  v_passo := make_interval(mins => v_intervalo);
-
   v_dow := extract(dow from p_data)::integer;
-  select h.ativo, h.hora_inicio, h.hora_fim, h.intervalo_minutos
-  into v_h_ativo, v_h_inicio, v_h_fim, v_h_intervalo
+  select h.ativo, h.hora_inicio, h.hora_intervalo_inicio, h.hora_intervalo_fim, h.hora_fim, h.intervalo_minutos
+  into v_h_ativo, v_h_inicio, v_h_intervalo_inicio, v_h_intervalo_fim, v_h_fim, v_h_intervalo
   from public.barbeiro_horarios h
   where h.barbeiro_id = p_barbeiro_id
     and h.dia_semana = v_dow
   limit 1;
 
-  if found then
-    if not coalesce(v_h_ativo, false) then
-      return;
-    end if;
-    v_abertura := coalesce(v_h_inicio, v_abertura);
-    v_fechamento := coalesce(v_h_fim, v_fechamento);
-    v_intervalo := coalesce(v_h_intervalo, v_intervalo);
-    v_passo := make_interval(mins => v_intervalo);
+  if not found then
+    return;
   end if;
+
+  if not coalesce(v_h_ativo, false) then
+    return;
+  end if;
+
+  v_abertura := coalesce(v_h_inicio, '09:00'::time);
+  v_fechamento := coalesce(v_h_fim, '19:00'::time);
+  v_intervalo := coalesce(v_h_intervalo, 30);
+  v_passo := make_interval(mins => v_intervalo);
 
   if v_fechamento <= v_abertura then
     return;
@@ -79,6 +71,16 @@ begin
 
   v_cursor := v_abertura;
   while (v_cursor + make_interval(mins => v_duracao)) <= v_fechamento loop
+    if (
+      v_h_intervalo_inicio is not null
+      and v_h_intervalo_fim is not null
+      and v_cursor < v_h_intervalo_fim
+      and (v_cursor + make_interval(mins => v_duracao))::time > v_h_intervalo_inicio
+    ) then
+      v_cursor := greatest((v_cursor + v_passo)::time, v_h_intervalo_fim);
+      continue;
+    end if;
+
     if not exists (
       select 1
       from public.agendamentos a

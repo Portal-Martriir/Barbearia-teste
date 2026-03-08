@@ -48,36 +48,68 @@
         <p id="agenda-barbeiro-info" class="muted"></p>
 
         <section class="card">
-          <div class="rowBetween">
-            <h3>Agendamentos</h3>
-            <div class="form-row compact-filters">
-              <label>Periodo
-                <select id="agenda-periodo-barbeiro">
-                  <option value="dia">Dia</option>
-                  <option value="semana">Semana</option>
-                  <option value="mes">Mes</option>
-                </select>
-              </label>
-              <label>Data de referencia
-                <input id="agenda-data-barbeiro" type="date" />
-              </label>
+          <div class="auth-tab-wrap auth-tab-wrap-2">
+            <button type="button" class="auth-tab-btn active" data-agenda-barbeiro-tab="agendamentos">Agendamentos</button>
+            <button type="button" class="auth-tab-btn" data-agenda-barbeiro-tab="registro">Registro</button>
+          </div>
+
+          <div class="auth-panel active" id="agenda-barbeiro-panel-agendamentos">
+            <div class="rowBetween">
+              <h3>Agendamentos</h3>
+              <div class="form-row compact-filters">
+                <label>Periodo
+                  <select id="agenda-periodo-barbeiro">
+                    <option value="dia">Dia</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes">Mes</option>
+                    <option value="personalizado">Periodo personalizado</option>
+                  </select>
+                </label>
+                <label id="agenda-barbeiro-inicio-wrap" hidden>Data inicial
+                  <input id="agenda-data-inicio-barbeiro" type="date" />
+                </label>
+                <label id="agenda-barbeiro-fim-wrap" hidden>Data final
+                  <input id="agenda-data-fim-barbeiro" type="date" />
+                </label>
+                <button id="btn-aplicar-filtro-agenda-barbeiro" type="button" class="btn-primary">Aplicar filtro</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Horario</th>
+                    <th>Cliente</th>
+                    <th>Servico</th>
+                    <th>Status</th>
+                    <th>Pagamento</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="lista-agenda-barbeiro"></tbody>
+              </table>
             </div>
           </div>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Horario</th>
-                  <th>Cliente</th>
-                  <th>Servico</th>
-                  <th>Status</th>
-                  <th>Pagamento</th>
-                  <th>Acoes</th>
-                </tr>
-              </thead>
-              <tbody id="lista-agenda-barbeiro"></tbody>
-            </table>
+
+          <div class="auth-panel" id="agenda-barbeiro-panel-registro">
+            <h3>Registro</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Servico</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>Motivo</th>
+                    <th>Status pagamento</th>
+                  </tr>
+                </thead>
+                <tbody id="historico-barbeiro-body"></tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>

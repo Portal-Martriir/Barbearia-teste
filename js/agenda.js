@@ -8,29 +8,80 @@ document.addEventListener('DOMContentLoaded', async () => {
   const info = document.getElementById('agenda-info');
   const tbody = document.getElementById('lista-agendamentos');
   const filtroBarbeiro = document.getElementById('filtro-barbeiro');
-  const dataInput = document.getElementById('filtro-data');
+  const periodoSelect = document.getElementById('agenda-periodo-admin');
+  const dataInicioInput = document.getElementById('agenda-data-inicio-admin');
+  const dataFimInput = document.getElementById('agenda-data-fim-admin');
+  const inicioWrap = document.getElementById('agenda-admin-inicio-wrap');
+  const fimWrap = document.getElementById('agenda-admin-fim-wrap');
+  const aplicarFiltroBtn = document.getElementById('btn-aplicar-filtro-agenda-admin');
   const dataLabel = document.getElementById('agenda-data-label');
-  const calTitle = document.getElementById('cal-title');
-  const calGrid = document.getElementById('calendar-grid');
 
-  if (!tbody || !filtroBarbeiro || !dataInput || !dataLabel || !calTitle || !calGrid) {
+  if (!tbody || !filtroBarbeiro || !periodoSelect || !dataInicioInput || !dataFimInput || !aplicarFiltroBtn || !dataLabel) {
     window.AppUtils.notify(info, 'Elementos da agenda nao foram encontrados.', true);
     return;
   }
 
-  let selectedDate = new Date();
-  let viewMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+  const hojeISO = window.AppUtils.todayISO();
+  dataInicioInput.value = hojeISO;
+  dataFimInput.value = hojeISO;
 
-  function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+  function toDateOnly(value) {
+    return new Date(`${value}T00:00:00`);
   }
 
-  function formatMonth(date) {
-    return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  function showDateFilters() {
+    const isCustom = (periodoSelect.value || 'dia') === 'personalizado';
+    if (inicioWrap) inicioWrap.hidden = !isCustom;
+    if (fimWrap) fimWrap.hidden = !isCustom;
   }
 
-  function normalizeDate(d) {
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  function periodRange(periodo) {
+    if (periodo === 'personalizado') {
+      const inicioCustom = dataInicioInput.value;
+      const fimCustom = dataFimInput.value;
+
+      if (!inicioCustom || !fimCustom) {
+        throw new Error('Informe data inicial e data final para o periodo personalizado.');
+      }
+
+      const inicioDate = toDateOnly(inicioCustom);
+      const fimDate = toDateOnly(fimCustom);
+      if (inicioDate > fimDate) {
+        throw new Error('A data inicial nao pode ser maior que a data final.');
+      }
+
+      return {
+        inicioISO: inicioDate.toISOString().slice(0, 10),
+        fimISO: fimDate.toISOString().slice(0, 10)
+      };
+    }
+
+    const ref = toDateOnly(hojeISO);
+    const inicio = new Date(ref);
+    const fim = new Date(ref);
+
+    if (periodo === 'semana') {
+      inicio.setDate(inicio.getDate() - inicio.getDay());
+      fim.setDate(inicio.getDate() + 6);
+    } else if (periodo === 'mes') {
+      inicio.setDate(1);
+      fim.setMonth(inicio.getMonth() + 1);
+      fim.setDate(0);
+    }
+
+    return {
+      inicioISO: inicio.toISOString().slice(0, 10),
+      fimISO: fim.toISOString().slice(0, 10)
+    };
+  }
+
+  function updatePeriodLabel(inicioISO, fimISO) {
+    if (inicioISO === fimISO) {
+      dataLabel.textContent = window.AppUtils.formatDate(inicioISO);
+      return;
+    }
+
+    dataLabel.textContent = `${window.AppUtils.formatDate(inicioISO)} ate ${window.AppUtils.formatDate(fimISO)}`;
   }
 
   async function loadBarbeirosFilter() {
@@ -48,38 +99,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     filtroBarbeiro.innerHTML = options.join('');
   }
 
-  function renderCalendar() {
-    calTitle.textContent = formatMonth(viewMonth);
-    calGrid.innerHTML = '';
-
-    const firstDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
-    const lastDay = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
-    const startWeekDay = firstDay.getDay();
-    const totalDays = lastDay.getDate();
-    const today = normalizeDate(new Date());
-
-    for (let i = 0; i < startWeekDay; i += 1) {
-      calGrid.insertAdjacentHTML('beforeend', '<span class="calendar-day muted"> </span>');
-    }
-
-    for (let day = 1; day <= totalDays; day += 1) {
-      const current = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-      const disabled = normalizeDate(current) < today;
-      const active = isoDate(current) === isoDate(selectedDate);
-      calGrid.insertAdjacentHTML(
-        'beforeend',
-        `<button type="button" class="calendar-day-btn ${active ? 'active' : ''}" data-date="${isoDate(current)}" ${disabled ? 'disabled' : ''}>${day}</button>`
-      );
-    }
-  }
-
-  function updateSelectedDate(date) {
-    selectedDate = date;
-    dataInput.value = isoDate(date);
-    dataLabel.textContent = window.AppUtils.formatDate(dataInput.value);
-    renderCalendar();
-  }
-
   function actionsForRow(row) {
     const locked = ['concluido', 'cancelado', 'desistencia_cliente'].includes(row.status);
     if (locked) {
@@ -88,13 +107,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     return `
       <div class="action-wrap">
-        ${row.status === 'agendado' ? `<button class="btn-secondary" data-action="iniciar" data-id="${row.id}">Iniciar</button>` : ''}
-        <button class="btn-secondary" data-action="concluir" data-id="${row.id}">Concluir</button>
         <button class="btn-danger" data-action="cancelar" data-id="${row.id}">Cancelar</button>
         <button class="btn-warning" data-action="desistencia" data-id="${row.id}">Desistencia</button>
-        <button class="btn-secondary" data-action="pagto" data-id="${row.id}" data-next="${row.pagamento_status === 'pago' ? 'pendente' : 'pago'}">
-          ${row.pagamento_status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}
-        </button>
       </div>
     `;
   }
@@ -102,16 +116,43 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadAgendamentos() {
     try {
       await window.Api.runAutoCompletion();
-      const rows = await window.Api.listAgendamentosByDate(dataInput.value, filtroBarbeiro.value);
+      const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'dia');
+      updatePeriodLabel(inicioISO, fimISO);
 
-      tbody.innerHTML = rows.length === 0
-        ? '<tr><td colspan="8">Sem agendamentos para a data selecionada.</td></tr>'
+      let query = window.sb
+        .from('agendamentos')
+        .select(`
+          id,
+          data,
+          hora_inicio,
+          hora_fim,
+          status,
+          pagamento_status,
+          valor,
+          clientes(nome),
+          barbeiros(nome),
+          servicos(nome)
+        `)
+        .gte('data', inicioISO)
+        .lte('data', fimISO)
+        .order('data', { ascending: true })
+        .order('hora_inicio', { ascending: true });
+
+      if (filtroBarbeiro.value) {
+        query = query.eq('barbeiro_id', filtroBarbeiro.value);
+      }
+
+      const { data: rows, error } = await query;
+      if (error) throw error;
+
+      tbody.innerHTML = (rows || []).length === 0
+        ? '<tr><td colspan="8">Sem agendamentos para o periodo selecionado.</td></tr>'
         : rows.map((r) => `
           <tr>
             <td>${r.clientes?.nome || '-'}</td>
             <td>${r.barbeiros?.nome || '-'}</td>
             <td>${r.servicos?.nome || '-'}</td>
-            <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
+            <td>${window.AppUtils.formatDate(r.data)} | ${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
             <td><span class="badge ${r.status}">${r.status}</span></td>
             <td><span class="badge ${r.pagamento_status}">${r.pagamento_status}</span></td>
             <td>${window.AppUtils.formatMoney(r.valor)}</td>
@@ -142,24 +183,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.Api.updateAgendamento(id, { status: nextStatus });
   }
 
-  document.getElementById('btn-cal-prev')?.addEventListener('click', () => {
-    viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
-    renderCalendar();
-  });
-
-  document.getElementById('btn-cal-next')?.addEventListener('click', () => {
-    viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
-    renderCalendar();
-  });
-
-  calGrid.addEventListener('click', async (ev) => {
-    const btn = ev.target.closest('.calendar-day-btn[data-date]');
-    if (!btn) return;
-    updateSelectedDate(new Date(`${btn.dataset.date}T00:00:00`));
-    await loadAgendamentos();
-  });
-
+  periodoSelect.addEventListener('change', showDateFilters);
   filtroBarbeiro.addEventListener('change', loadAgendamentos);
+  aplicarFiltroBtn.addEventListener('click', loadAgendamentos);
 
   tbody.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-action]');
@@ -169,8 +195,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const action = btn.dataset.action;
 
     try {
-      if (action === 'iniciar') await updateStatus(id, 'em_atendimento');
-      if (action === 'concluir') await updateStatus(id, 'concluido');
       if (action === 'cancelar') {
         const ok = window.confirm('Confirma o cancelamento deste agendamento?');
         if (!ok) return;
@@ -181,7 +205,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!ok) return;
         await updateStatus(id, 'desistencia_cliente');
       }
-      if (action === 'pagto') await window.Api.updateAgendamento(id, { pagamento_status: btn.dataset.next });
 
       await loadAgendamentos();
       window.AppUtils.notify(info, 'Agendamento atualizado.');
@@ -191,8 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   try {
+    showDateFilters();
     await loadBarbeirosFilter();
-    updateSelectedDate(selectedDate);
     await loadAgendamentos();
   } catch (err) {
     window.AppUtils.notify(info, err.message, true);

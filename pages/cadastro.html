@@ -30,7 +30,7 @@
     <div class="content-area">
       <header class="topbar">
         <div class="topbar-inner">
-          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">☰</button>
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
           <span class="brand">integralissolucoes</span>
           <div>
             <span data-user-name></span>
@@ -50,11 +50,35 @@
         </div>
 
         <div class="auth-panel active" id="cadastro-panel-usuarios">
-          <div class="auth-tab-wrap">
-            <button type="button" class="auth-tab-btn active" data-usuario-subtab="usuarios">Clientes</button>
-            <button type="button" class="auth-tab-btn" data-usuario-subtab="barbeiros">Barbeiros</button>
-            <button type="button" class="auth-tab-btn" data-usuario-subtab="admin">Admin</button>
-          </div>
+          <section class="card user-subtabs-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Gerenciar usuarios</h3>
+                <p class="muted">Escolha o perfil que deseja visualizar e administrar.</p>
+              </div>
+            </div>
+
+            <div class="user-subtab-grid">
+              <button type="button" class="user-subtab-btn active" data-usuario-subtab="usuarios">
+                <span class="user-subtab-kicker">Perfil</span>
+                <strong>Clientes</strong>
+                <small>Usuarios finais cadastrados no sistema.</small>
+                <span id="usuarios-count-clientes" class="user-subtab-count">0</span>
+              </button>
+              <button type="button" class="user-subtab-btn" data-usuario-subtab="barbeiros">
+                <span class="user-subtab-kicker">Equipe</span>
+                <strong>Barbeiros</strong>
+                <small>Profissionais com comissao e agenda ativa.</small>
+                <span id="usuarios-count-barbeiros" class="user-subtab-count">0</span>
+              </button>
+              <button type="button" class="user-subtab-btn" data-usuario-subtab="admin">
+                <span class="user-subtab-kicker">Controle</span>
+                <strong>Administradores</strong>
+                <small>Usuarios com acesso de gestao do sistema.</small>
+                <span id="usuarios-count-admin" class="user-subtab-count">0</span>
+              </button>
+            </div>
+          </section>
 
           <section class="card">
             <h3>Cadastro manual desativado</h3>
@@ -69,6 +93,8 @@
                 <tr>
                   <th>Nome</th>
                   <th>Email</th>
+                  <th>Telefone</th>
+                  <th>Nascimento</th>
                   <th>Perfil</th>
                   <th>Comissao</th>
                   <th>Ativo</th>
@@ -149,6 +175,32 @@
     </div>
   </div>
 
+  <div id="app-modal-root" class="app-modal-root" hidden aria-hidden="true">
+    <div id="app-modal-backdrop" class="app-modal-backdrop"></div>
+    <div
+      id="app-modal-dialog"
+      class="app-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-modal-title"
+      aria-describedby="app-modal-message"
+    >
+      <button id="app-modal-close" type="button" class="app-modal-close" aria-label="Fechar modal">&times;</button>
+      <div class="app-modal-header">
+        <h3 id="app-modal-title">Modal</h3>
+        <p id="app-modal-message" class="muted"></p>
+      </div>
+      <form id="app-modal-form" class="app-modal-form">
+        <div id="app-modal-fields" class="app-modal-fields"></div>
+        <p id="app-modal-error" class="error" hidden></p>
+        <div class="app-modal-actions">
+          <button id="app-modal-cancel" type="button" class="btn-secondary">Cancelar</button>
+          <button id="app-modal-confirm" type="submit" class="btn-primary">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
   <script src="../js/supabaseClient.js"></script>
@@ -158,4 +210,3 @@
   <script src="../js/cadastro.js"></script>
 </body>
 </html>
-

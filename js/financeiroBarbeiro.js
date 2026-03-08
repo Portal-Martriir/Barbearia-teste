@@ -15,14 +15,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bfServicosPagos = document.getElementById('bf-servicos-pagos');
   const bfContasReceberBody = document.getElementById('bf-contas-receber-body');
   const ganhosPeriodo = document.getElementById('ganhos-periodo');
+  const ganhosExtratoBody = document.getElementById('ganhos-extrato-body');
   const tabButtons = document.querySelectorAll('[data-finbar-tab]');
-  const panelFinanceiro = document.getElementById('finbar-panel-financeiro');
+  const panelResumo = document.getElementById('finbar-panel-resumo');
   const panelGanhos = document.getElementById('finbar-panel-ganhos');
+  const panelContas = document.getElementById('finbar-panel-contas');
 
   function setTab(tab) {
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.finbarTab === tab));
-    panelFinanceiro.classList.toggle('active', tab === 'financeiro');
+    panelResumo.classList.toggle('active', tab === 'resumo');
     panelGanhos.classList.toggle('active', tab === 'ganhos');
+    panelContas.classList.toggle('active', tab === 'contas');
   }
 
   tabButtons.forEach((btn) => btn.addEventListener('click', () => setTab(btn.dataset.finbarTab)));
@@ -124,13 +127,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('ganhos-faturado').textContent = window.AppUtils.formatMoney(0);
       document.getElementById('ganhos-comissao').textContent = window.AppUtils.formatMoney(0);
       document.getElementById('ganhos-atendimentos').textContent = '0';
+      ganhosExtratoBody.innerHTML = '<tr><td colspan="7">Sem servicos no periodo.</td></tr>';
       return;
     }
     const range = periodRange(ganhosPeriodo.value);
-    const [agRes, comRes] = await Promise.all([
+    const [agRes, comRes, finRes] = await Promise.all([
       window.sb
         .from('agendamentos')
-        .select('id, valor, status, data')
+        .select('id, valor, status, data, hora_inicio, hora_fim, clientes!agendamentos_cliente_id_fkey(nome), servicos(nome)')
         .eq('barbeiro_id', barbeiroId)
         .gte('data', range.inicio)
         .lte('data', range.fim),
@@ -139,18 +143,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         .select('valor_comissao, data')
         .eq('barbeiro_id', barbeiroId)
         .gte('data', range.inicio)
+        .lte('data', range.fim),
+      window.sb
+        .from('financeiro')
+        .select('agendamento_id, comissao_barbeiro, status_pagamento')
+        .eq('barbeiro_id', barbeiroId)
+        .gte('data', range.inicio)
         .lte('data', range.fim)
     ]);
     if (agRes.error) throw agRes.error;
     if (comRes.error) throw comRes.error;
+    if (finRes.error) throw finRes.error;
 
     const atendimentos = (agRes.data || []).filter((a) => a.status === 'concluido');
     const totalFaturado = atendimentos.reduce((acc, a) => acc + Number(a.valor || 0), 0);
     const totalComissao = (comRes.data || []).reduce((acc, c) => acc + Number(c.valor_comissao || 0), 0);
+    const financeiroByAgendamento = new Map((finRes.data || []).map((row) => [row.agendamento_id, row]));
 
     document.getElementById('ganhos-faturado').textContent = window.AppUtils.formatMoney(totalFaturado);
     document.getElementById('ganhos-comissao').textContent = window.AppUtils.formatMoney(totalComissao);
     document.getElementById('ganhos-atendimentos').textContent = String(atendimentos.length);
+    ganhosExtratoBody.innerHTML = atendimentos.length === 0
+      ? '<tr><td colspan="7">Sem servicos no periodo.</td></tr>'
+      : atendimentos.map((row) => {
+        const financeiro = financeiroByAgendamento.get(row.id);
+        const comissao = Number(financeiro?.comissao_barbeiro || 0);
+        const statusPagamento = financeiro?.status_pagamento || 'pago';
+        return `
+          <tr>
+            <td>${window.AppUtils.formatDate(row.data)}</td>
+            <td>${String(row.hora_inicio || '').slice(0, 5)} - ${String(row.hora_fim || '').slice(0, 5)}</td>
+            <td>${row.clientes?.nome || '-'}</td>
+            <td>${row.servicos?.nome || '-'}</td>
+            <td>${window.AppUtils.formatMoney(row.valor)}</td>
+            <td>${window.AppUtils.formatMoney(comissao)}</td>
+            <td><span class="badge ${statusPagamento}">${statusPagamento}</span></td>
+          </tr>
+        `;
+      }).join('');
   }
 
   let barbeiroId = null;
@@ -241,7 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     bfDataFim.value = hoje;
     await loadGanhos(barbeiroId);
     await loadFinanceiroBarbeiro(barbeiroId);
-    setTab('financeiro');
+    setTab('resumo');
     if (!barbeiroId) {
       window.AppUtils.notify(info, 'Nao foi possivel localizar barbeiro para este usuario.', true);
     }

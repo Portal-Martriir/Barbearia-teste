@@ -10,22 +10,28 @@ window.CommonUI = {
     userNameEls.forEach((el) => {
       el.textContent = safeUser.nome;
 
-      const container = el.closest('.sidebar-user') || el.parentElement;
-      if (!container) return;
-
-      let meta = container.querySelector('.user-meta');
-      if (!meta) {
-        meta = document.createElement('small');
-        meta.className = 'user-meta muted';
-        container.insertBefore(meta, container.querySelector('[data-logout]') || null);
+      const sidebarContainer = el.closest('.sidebar-user');
+      const parentMeta = el.parentElement?.querySelector('.user-meta');
+      if (!sidebarContainer) {
+        if (parentMeta) parentMeta.remove();
+        return;
       }
 
-      const perfilLabel = safeUser.perfil ? safeUser.perfil.toUpperCase() : 'USUARIO';
-      meta.textContent = safeUser.email ? `${perfilLabel} - ${safeUser.email}` : perfilLabel;
+      let meta = sidebarContainer.querySelector('.user-meta');
+      if (meta) meta.remove();
     });
 
     const logoutBtns = document.querySelectorAll('[data-logout]');
     logoutBtns.forEach((btn) => btn.addEventListener('click', () => window.Auth.logout()));
+
+    const showRoleElement = (el) => {
+      const display = el.tagName === 'A' || el.tagName === 'BUTTON' ? 'inline-flex' : 'block';
+      el.style.setProperty('display', display, 'important');
+    };
+
+    const hideRoleElement = (el) => {
+      el.style.setProperty('display', 'none', 'important');
+    };
 
     const inPages = window.location.pathname.includes('/pages/');
     const meusDadosHref = inPages ? './meus-dados.html' : './pages/meus-dados.html';
@@ -43,33 +49,33 @@ window.CommonUI = {
     const adminOnly = document.querySelectorAll('[data-admin-only]');
     adminOnly.forEach((el) => {
       if (safeUser.perfil === 'admin') {
-        el.style.setProperty('display', '', 'important');
+        showRoleElement(el);
       } else {
-        el.style.setProperty('display', 'none', 'important');
+        hideRoleElement(el);
       }
     });
 
     const barberOnly = document.querySelectorAll('[data-barber-only]');
     barberOnly.forEach((el) => {
       if (safeUser.perfil === 'barbeiro') {
-        el.style.setProperty('display', '', 'important');
+        showRoleElement(el);
       } else {
-        el.style.setProperty('display', 'none', 'important');
+        hideRoleElement(el);
       }
     });
 
     const clientOnly = document.querySelectorAll('[data-client-only]');
     clientOnly.forEach((el) => {
       if (safeUser.perfil === 'cliente') {
-        el.style.setProperty('display', '', 'important');
+        showRoleElement(el);
       } else {
-        el.style.setProperty('display', 'none', 'important');
+        hideRoleElement(el);
       }
     });
 
     if (safeUser.perfil === 'barbeiro') {
       const barberNavFallback = document.querySelectorAll('.nav a:not([data-admin-only]):not([data-client-only])');
-      barberNavFallback.forEach((el) => el.style.setProperty('display', '', 'important'));
+      barberNavFallback.forEach((el) => showRoleElement(el));
     }
 
     const path = window.location.pathname.split('/').pop();

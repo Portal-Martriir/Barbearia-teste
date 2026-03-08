@@ -63,48 +63,38 @@
         </section>
 
         <section class="grid">
-          <article class="card"><h3>Total faturado hoje</h3><div id="total-faturado-hoje" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Atendimentos hoje</h3><div id="atendimentos-hoje" class="value">0</div></article>
-          <article class="card"><h3>Agendamentos do dia</h3><div id="agendamentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Total faturado</h3><div id="total-faturado-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Atendimentos</h3><div id="atendimentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Agendamentos</h3><div id="agendamentos-hoje" class="value">0</div></article>
           <article class="card"><h3>Barbeiro destaque</h3><div id="top-barbeiro-hoje" class="value">-</div></article>
           <article class="card"><h3>Contas a receber</h3><div id="dashboard-contas-receber" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Despesas hoje</h3><div id="dashboard-despesas-hoje" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Comissoes hoje</h3><div id="dashboard-comissoes-hoje" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Lucro liquido hoje</h3><div id="dashboard-liquido-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Despesas</h3><div id="dashboard-despesas-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Comissoes</h3><div id="dashboard-comissoes-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Lucro liquido</h3><div id="dashboard-liquido-hoje" class="value">R$ 0,00</div></article>
         </section>
 
-        <section class="card table-wrap">
-          <h3>Agendamentos do periodo</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Horario</th>
-                <th>Cliente</th>
-                <th>Barbeiro</th>
-                <th>Servico</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="dashboard-proximos"></tbody>
-          </table>
+        <section class="dashboard-charts">
+          <article class="card chart-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Evolucao financeira</h3>
+                <p class="muted">Receita bruta, comissoes e lucro liquido no periodo.</p>
+              </div>
+            </div>
+            <div id="dashboard-chart-series" class="chart-series" aria-live="polite"></div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Ranking de barbeiros</h3>
+                <p class="muted">Faturamento bruto por barbeiro no periodo selecionado.</p>
+              </div>
+            </div>
+            <div id="dashboard-chart-ranking" class="chart-ranking" aria-live="polite"></div>
+          </article>
         </section>
 
-        <section class="card table-wrap">
-          <h3>Resumo de contas a receber</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Origem</th>
-                <th>Data</th>
-                <th>Descricao</th>
-                <th>Valor</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody id="dashboard-contas-lista"></tbody>
-          </table>
-        </section>
       </main>
     </div>
   </div>

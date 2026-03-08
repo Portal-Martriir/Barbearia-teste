@@ -47,65 +47,31 @@
         <h1>Financeiro do Barbeiro</h1>
         <p id="barbeiro-fin-info" class="muted"></p>
 
-        <div class="auth-tab-wrap auth-tab-wrap-2">
-          <button type="button" class="auth-tab-btn active" data-finbar-tab="financeiro">Financeiro</button>
+        <div class="auth-tab-wrap">
+          <button type="button" class="auth-tab-btn active" data-finbar-tab="resumo">Resumo financeiro</button>
           <button type="button" class="auth-tab-btn" data-finbar-tab="ganhos">Ganhos</button>
+          <button type="button" class="auth-tab-btn" data-finbar-tab="contas">Contas a receber</button>
         </div>
 
-        <div class="auth-panel active" id="finbar-panel-financeiro">
+        <div class="auth-panel active" id="finbar-panel-resumo">
+          <section class="grid">
+            <article class="card"><h3>Receita (Bruto)</h3><div id="bf-receita-paga" class="value">R$ 0,00</div></article>
+            <article class="card"><h3>Contas a receber</h3><div id="bf-contas-receber" class="value">R$ 0,00</div></article>
+            <article class="card"><h3>Comissoes (liquido)</h3><div id="bf-comissao-paga" class="value">R$ 0,00</div></article>
+            <article class="card"><h3>Atendimentos pagos</h3><div id="bf-qtd-pagos" class="value">0</div></article>
+          </section>
 
-        <section class="grid">
-          <article class="card"><h3>Receita paga (periodo)</h3><div id="bf-receita-paga" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Contas a receber</h3><div id="bf-contas-receber" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Comissao (servicos pagos)</h3><div id="bf-comissao-paga" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Atendimentos pagos</h3><div id="bf-qtd-pagos" class="value">0</div></article>
-        </section>
-
-        <section class="card">
-          <div class="form-row">
-            <label>Data inicio
-              <input id="bf-data-inicio" type="date" />
-            </label>
-            <label>Data fim
-              <input id="bf-data-fim" type="date" />
-            </label>
-            <button id="bf-btn-filtrar" type="button" class="btn-secondary">Aplicar filtros</button>
-          </div>
-        </section>
-
-        <section class="card table-wrap">
-          <h3>Servicos pagos para lancar a receber</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Cliente</th>
-                <th>Servico</th>
-                <th>Valor</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody id="bf-servicos-pagos"></tbody>
-          </table>
-        </section>
-
-        <section class="card table-wrap">
-          <h3>Contas a receber (servicos)</h3>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Cliente</th>
-                <th>Servico</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th>Acoes</th>
-              </tr>
-            </thead>
-            <tbody id="bf-contas-receber-body"></tbody>
-          </table>
-        </section>
-
+          <section class="card">
+            <div class="form-row">
+              <label>Data inicio
+                <input id="bf-data-inicio" type="date" />
+              </label>
+              <label>Data fim
+                <input id="bf-data-fim" type="date" />
+              </label>
+              <button id="bf-btn-filtrar" type="button" class="btn-secondary">Aplicar filtros</button>
+            </div>
+          </section>
         </div>
 
         <div class="auth-panel" id="finbar-panel-ganhos">
@@ -126,6 +92,59 @@
               <article class="card"><h3>Atendimentos</h3><div id="ganhos-atendimentos" class="value">0</div></article>
             </div>
           </section>
+
+          <section class="card table-wrap">
+            <h3>Extrato de servicos realizados</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Horario</th>
+                  <th>Cliente</th>
+                  <th>Servico</th>
+                  <th>Valor bruto</th>
+                  <th>Comissao</th>
+                  <th>Status pagamento</th>
+                </tr>
+              </thead>
+              <tbody id="ganhos-extrato-body"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="finbar-panel-contas">
+          <section class="card table-wrap">
+            <h3>Servicos pagos para lancar a receber</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Servico</th>
+                  <th>Valor</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="bf-servicos-pagos"></tbody>
+            </table>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Contas a receber (servicos)</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Servico</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="bf-contas-receber-body"></tbody>
+            </table>
+          </section>
         </div>
       </main>
     </div>
@@ -141,4 +160,3 @@
   <script src="../js/financeiroBarbeiro.js"></script>
 </body>
 </html>
-

@@ -6,23 +6,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   await window.Api.runAutoCompletion();
 
   const info = document.getElementById('barbeiro-info');
-  const agendaDataInput = document.getElementById('agenda-data-barbeiro');
   const agendaDataInicioInput = document.getElementById('agenda-data-inicio-barbeiro');
   const agendaDataFimInput = document.getElementById('agenda-data-fim-barbeiro');
   const periodoSelect = document.getElementById('barbeiro-periodo');
-  const refWrap = document.getElementById('barbeiro-ref-wrap');
   const inicioWrap = document.getElementById('barbeiro-data-inicio-wrap');
   const fimWrap = document.getElementById('barbeiro-data-fim-wrap');
+  const aplicarFiltroBtn = document.getElementById('btn-aplicar-filtro-barbeiro');
   const agendaBody = document.getElementById('lista-agenda-barbeiro');
-  const historicoBody = document.getElementById('historico-barbeiro-body');
 
-  if (!periodoSelect || !agendaDataInput || !agendaDataInicioInput || !agendaDataFimInput || !agendaBody || !historicoBody) {
+  if (!periodoSelect || !agendaDataInicioInput || !agendaDataFimInput || !aplicarFiltroBtn || !agendaBody) {
     window.AppUtils.notify(info, 'Elementos obrigatorios do painel nao foram encontrados.', true);
     return;
   }
 
   const hojeISO = window.AppUtils.todayISO();
-  agendaDataInput.value = hojeISO;
   agendaDataInicioInput.value = hojeISO;
   agendaDataFimInput.value = hojeISO;
 
@@ -37,14 +34,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   function showDateFilters() {
     const periodo = periodoSelect.value || 'hoje';
     const custom = periodo === 'personalizado';
-    const reference = periodo === 'dia';
 
-    if (refWrap) refWrap.hidden = !reference;
     if (inicioWrap) inicioWrap.hidden = !custom;
     if (fimWrap) fimWrap.hidden = !custom;
   }
 
-  function periodRange(periodo, refDateISO) {
+  function periodRange(periodo) {
     const hoje = toDateOnly(window.AppUtils.todayISO());
     const inicio = new Date(hoje);
     const fim = new Date(hoje);
@@ -77,12 +72,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         inicioISO: toISO(inicioDate),
         fimISO: toISO(fimDate)
       };
-    } else if (periodo === 'dia') {
-      const ref = toDateOnly(refDateISO || hojeISO);
-      return {
-        inicioISO: toISO(ref),
-        fimISO: toISO(ref)
-      };
     }
 
     return {
@@ -106,11 +95,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!barbeiroId) return [];
 
     const periodo = periodoSelect.value || 'hoje';
-    const { inicioISO, fimISO } = periodRange(periodo, agendaDataInput.value);
+    const { inicioISO, fimISO } = periodRange(periodo);
 
     const { data, error } = await window.sb
       .from('agendamentos')
-      .select('id, data, hora_inicio, hora_fim, status, pagamento_pendente, clientes(nome), servicos(nome), valor, motivo_cancelamento, cancelado_em')
+      .select(`
+        id,
+        data,
+        hora_inicio,
+        hora_fim,
+        status,
+        pagamento_pendente,
+        cliente_id,
+        clientes!agendamentos_cliente_id_fkey(nome),
+        servicos(nome),
+        valor,
+        motivo_cancelamento,
+        cancelado_em
+      `)
       .eq('barbeiro_id', barbeiroId)
       .gte('data', inicioISO)
       .lte('data', fimISO)
@@ -127,11 +129,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const buttons = [];
-    if (row.status === 'agendado') {
-      buttons.push(`<button class="btn-secondary" data-action="iniciar" data-id="${row.id}">Iniciar</button>`);
-    }
-
-    buttons.push(`<button class="btn-secondary" data-action="concluir" data-id="${row.id}">Concluir</button>`);
     buttons.push(`<button class="btn-danger" data-action="cancelar" data-id="${row.id}">Cancelar</button>`);
     buttons.push(`<button class="btn-warning" data-action="desistencia" data-id="${row.id}">Desistencia</button>`);
 
@@ -159,7 +156,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const rows = await loadAgendamentosPeriodo(barbeiroId);
-    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'hoje', agendaDataInput.value);
+    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'hoje');
 
     const { data: comRows, error: comError } = await window.sb
       .from('comissoes')
@@ -208,30 +205,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
           <td>${formatMotivo(r)}</td>
           <td>${buildStatusActions(r)}</td>
-        </tr>
-      `).join('');
-  }
-
-  async function loadHistorico(barbeiroId) {
-    if (!barbeiroId) {
-      historicoBody.innerHTML = '<tr><td colspan="7">Sem historico.</td></tr>';
-      return;
-    }
-
-    const rows = await loadAgendamentosPeriodo(barbeiroId);
-    const historico = rows.filter((r) => ['concluido', 'cancelado', 'desistencia_cliente'].includes(r.status));
-
-    historicoBody.innerHTML = historico.length === 0
-      ? '<tr><td colspan="7">Sem historico.</td></tr>'
-      : historico.map((r) => `
-        <tr>
-          <td>${r.clientes?.nome || '-'}</td>
-          <td>${r.servicos?.nome || '-'}</td>
-          <td>${window.AppUtils.formatMoney(r.valor)}</td>
-          <td>${window.AppUtils.formatDate(r.data)}</td>
-          <td><span class="badge ${r.status}">${r.status}</span></td>
-          <td>${formatMotivo(r)}</td>
-          <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
         </tr>
       `).join('');
   }
@@ -292,26 +265,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function refreshAll(barbeiroId) {
     await Promise.all([
       loadResumoPeriodo(barbeiroId),
-      loadAgendaPeriodo(barbeiroId),
-      loadHistorico(barbeiroId)
+      loadAgendaPeriodo(barbeiroId)
     ]);
   }
 
   let barbeiroId = null;
 
-  async function onFilterChange() {
+  async function applyFilters() {
     try {
-      showDateFilters();
       await refreshAll(barbeiroId);
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
   }
 
-  agendaDataInput.addEventListener('change', onFilterChange);
-  agendaDataInicioInput.addEventListener('change', onFilterChange);
-  agendaDataFimInput.addEventListener('change', onFilterChange);
-  periodoSelect.addEventListener('change', onFilterChange);
+  periodoSelect.addEventListener('change', () => {
+    showDateFilters();
+  });
+
+  aplicarFiltroBtn.addEventListener('click', applyFilters);
 
   agendaBody.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-action][data-id]');
@@ -321,11 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const id = btn.dataset.id;
 
     try {
-      if (action === 'iniciar') {
-        await updateStatusWithValidation(id, 'em_atendimento');
-      } else if (action === 'concluir') {
-        await updateStatusWithValidation(id, 'concluido');
-      } else if (action === 'cancelar') {
+      if (action === 'cancelar') {
         const ok = window.confirm('Confirma cancelamento deste atendimento?');
         if (!ok) return;
 

@@ -45,26 +45,31 @@
 
         <section class="card">
           <h3>Visualizacao da agenda</h3>
-          <div class="form-row">
+          <div class="form-row compact-filters">
             <label>Barbeiro
               <select id="filtro-barbeiro"></select>
             </label>
+            <label>Periodo
+              <select id="agenda-periodo-admin">
+                <option value="dia">Dia</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mes</option>
+                <option value="personalizado">Personalizado</option>
+              </select>
+            </label>
+            <label id="agenda-admin-inicio-wrap" hidden>Data inicial
+              <input id="agenda-data-inicio-admin" type="date" />
+            </label>
+            <label id="agenda-admin-fim-wrap" hidden>Data final
+              <input id="agenda-data-fim-admin" type="date" />
+            </label>
           </div>
 
-          <div class="calendar-card">
-            <div class="rowBetween">
-              <button id="btn-cal-prev" type="button" class="btn-secondary">Mes anterior</button>
-              <strong id="cal-title">Calendario</strong>
-              <button id="btn-cal-next" type="button" class="btn-secondary">Proximo mes</button>
-            </div>
-            <div class="calendar-weekdays">
-              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
-            </div>
-            <div id="calendar-grid" class="calendar-grid"></div>
+          <div class="section-actions">
+            <button id="btn-aplicar-filtro-agenda-admin" type="button" class="btn-primary">Aplicar filtro</button>
           </div>
 
-          <p class="muted">Data selecionada: <strong id="agenda-data-label">-</strong></p>
-          <input id="filtro-data" type="hidden" />
+          <p class="muted">Periodo selecionado: <strong id="agenda-data-label">-</strong></p>
         </section>
 
         <section class="card table-wrap">

@@ -43,102 +43,45 @@
         <h1>Configuracoes gerais</h1>
         <p id="config-info" class="muted"></p>
 
-        <div class="auth-tab-wrap auth-tab-wrap-2">
-          <button type="button" class="auth-tab-btn active" data-config-tab="loja">Loja</button>
-          <button type="button" class="auth-tab-btn" data-config-tab="barbeiro">Todos os barbeiros</button>
-        </div>
-
-        <div class="auth-panel active" id="config-panel-loja">
-          <section class="card">
-            <div class="store-hours-header">
-              <h3>Horarios da loja</h3>
-              <p class="muted">Configure o padrao da loja e, se quiser, personalize data por data.</p>
+        <section class="card">
+          <div class="rowBetween">
+            <div>
+              <h3>Horarios por barbeiro</h3>
+              <p class="muted">A disponibilidade do agendamento passa a considerar somente os horarios configurados para cada barbeiro.</p>
             </div>
+          </div>
 
-            <div class="calendar-card">
-              <div class="rowBetween">
-                <button id="cfg-btn-cal-prev" type="button" class="btn-secondary">Mes anterior</button>
-                <strong id="cfg-cal-title">Calendario</strong>
-                <button id="cfg-btn-cal-next" type="button" class="btn-secondary">Proximo mes</button>
-              </div>
-              <div class="calendar-weekdays">
-                <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
-              </div>
-              <div id="cfg-calendar-grid" class="calendar-grid"></div>
-            </div>
+          <div class="form-row" id="cfg-barbeiro-wrap">
+            <label>Barbeiro
+              <select id="cfg-barbeiro"></select>
+            </label>
+            <label>Semana de referencia
+              <input id="cfg-semana-ref" type="date" />
+            </label>
+          </div>
+        </section>
 
-            <p class="muted">Data selecionada: <strong id="cfg-data-label">-</strong></p>
-            <p class="muted">Clique nos horarios abaixo para preencher o horario do dia selecionado.</p>
-            <div id="cfg-store-slots" class="slots-grid"></div>
-
-            <form id="form-config-dia-loja" class="store-hours-grid">
-              <label>Abertura do dia
-                <input id="cfg-dia-abertura" type="time" required />
-              </label>
-              <label>Fechamento do dia
-                <input id="cfg-dia-fechamento" type="time" required />
-              </label>
-              <label>Intervalo do dia (minutos)
-                <input id="cfg-dia-intervalo" type="number" min="5" max="120" required />
-              </label>
-              <button type="submit" class="btn-primary">Salvar horario deste dia</button>
-            </form>
-
-            <h3 style="margin-top:16px;">Padrao da loja</h3>
-            <form id="form-config-agenda" class="store-hours-grid">
-              <label>Abertura
-                <input id="cfg-hora-abertura" type="time" required />
-              </label>
-              <label>Fechamento
-                <input id="cfg-hora-fechamento" type="time" required />
-              </label>
-              <label>Intervalo (minutos)
-                <input id="cfg-intervalo" type="number" min="5" max="120" required />
-              </label>
-              <button type="submit" class="btn-primary">Salvar configuracao</button>
-            </form>
-
-            <section class="card" style="margin-top:12px;">
-              <h3>Dias fechados por padrao</h3>
-              <p class="muted">Marque os dias que a loja normalmente nao abre (ex.: domingo).</p>
-              <div id="cfg-dias-fechados" class="form-row"></div>
-              <button id="btn-salvar-dias-fechados" type="button" class="btn-primary">Salvar dias fechados</button>
-            </section>
-          </section>
-        </div>
-
-        <div class="auth-panel" id="config-panel-barbeiro">
-          <section class="card">
-            <div class="form-row" id="cfg-barbeiro-wrap">
-              <label>Barbeiro
-                <select id="cfg-barbeiro"></select>
-              </label>
-              <label>Semana de referencia
-                <input id="cfg-semana-ref" type="date" />
-              </label>
-            </div>
-          </section>
-
-          <section class="card table-wrap">
-            <h3>Horario semanal (todos os barbeiros)</h3>
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Dia</th>
-                  <th>Data (semana ref.)</th>
-                  <th>Ativo</th>
-                  <th>Inicio</th>
-                  <th>Fim</th>
-                  <th>Intervalo (min)</th>
-                </tr>
-              </thead>
-              <tbody id="cfg-barbeiro-horarios-body"></tbody>
-            </table>
-            <div style="margin-top: 12px;">
-              <button id="btn-salvar-horarios-barbeiro" type="button" class="btn-primary">Salvar horarios do barbeiro</button>
-            </div>
-          </section>
-        </div>
+        <section class="card table-wrap">
+          <h3>Horario semanal do barbeiro</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Dia</th>
+                <th>Data (semana ref.)</th>
+                <th>Ativo</th>
+                <th>Inicio</th>
+                <th>Inicio intervalo</th>
+                <th>Volta</th>
+                <th>Fim</th>
+                <th>Intervalo (min)</th>
+              </tr>
+            </thead>
+            <tbody id="cfg-barbeiro-horarios-body"></tbody>
+          </table>
+          <div class="section-actions">
+            <button id="btn-salvar-horarios-barbeiro" type="button" class="btn-primary">Salvar horarios do barbeiro</button>
+          </div>
+        </section>
       </main>
     </div>
   </div>

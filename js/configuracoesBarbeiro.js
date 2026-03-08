@@ -47,16 +47,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return map;
   }
 
-  async function loadConfigAgendaDefault() {
-    const { data, error } = await window.sb
-      .from('configuracao_agenda')
-      .select('hora_abertura, hora_fechamento, intervalo_minutos')
-      .eq('id', 1)
-      .maybeSingle();
-    if (error) throw error;
-    return data || { hora_abertura: '09:00', hora_fechamento: '19:00', intervalo_minutos: 30 };
-  }
-
   async function getMeuBarbeiroId() {
     const { data, error } = await window.sb
       .from('barbeiros')
@@ -72,6 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const item = horariosMap.get(d.id) || {};
       const ativo = item.ativo ?? true;
       const inicio = String(item.hora_inicio || defaults.hora_abertura || '09:00').slice(0, 5);
+      const inicioIntervalo = String(item.hora_intervalo_inicio || '').slice(0, 5);
+      const voltaIntervalo = String(item.hora_intervalo_fim || '').slice(0, 5);
       const fim = String(item.hora_fim || defaults.hora_fechamento || '19:00').slice(0, 5);
       const intv = Number(item.intervalo_minutos || defaults.intervalo_minutos || 30);
       const dateRef = datesMap.get(d.id);
@@ -81,8 +73,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         <tr>
           <td>${d.nome}</td>
           <td>${dateText}</td>
-          <td><input type="checkbox" data-dia="${d.id}" data-field="ativo" ${ativo ? 'checked' : ''} /></td>
+          <td>
+            <label class="status-switch">
+              <input type="checkbox" data-dia="${d.id}" data-field="ativo" ${ativo ? 'checked' : ''} />
+              <span class="status-switch-track">
+                <span class="status-switch-thumb"></span>
+              </span>
+              <span class="status-switch-label">${ativo ? 'Ativo' : 'Pausado'}</span>
+            </label>
+          </td>
           <td><input type="time" data-dia="${d.id}" data-field="inicio" value="${inicio}" /></td>
+          <td><input type="time" data-dia="${d.id}" data-field="inicio-intervalo" value="${inicioIntervalo}" /></td>
+          <td><input type="time" data-dia="${d.id}" data-field="volta-intervalo" value="${voltaIntervalo}" /></td>
           <td><input type="time" data-dia="${d.id}" data-field="fim" value="${fim}" /></td>
           <td><input type="number" min="5" max="120" step="5" data-dia="${d.id}" data-field="intervalo" value="${intv}" /></td>
         </tr>
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadHorarios(meuBarbeiroId, defaults) {
     const { data, error } = await window.sb
       .from('barbeiro_horarios')
-      .select('dia_semana, ativo, hora_inicio, hora_fim, intervalo_minutos')
+      .select('dia_semana, ativo, hora_inicio, hora_intervalo_inicio, hora_intervalo_fim, hora_fim, intervalo_minutos')
       .eq('barbeiro_id', meuBarbeiroId);
     if (error) throw error;
 
@@ -114,6 +116,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  horariosBody.addEventListener('change', (ev) => {
+    const input = ev.target.closest('input[data-field="ativo"]');
+    if (!input) return;
+    const label = input.closest('.status-switch')?.querySelector('.status-switch-label');
+    if (label) label.textContent = input.checked ? 'Ativo' : 'Pausado';
+  });
+
   btnSalvar.addEventListener('click', async () => {
     if (!meuBarbeiroId) {
       window.AppUtils.notify(info, 'Barbeiro nao encontrado para este usuario.', true);
@@ -124,18 +133,46 @@ document.addEventListener('DOMContentLoaded', async () => {
       const rows = diasSemana.map((d) => {
         const ativo = horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="ativo"]`)?.checked ?? true;
         const inicio = horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="inicio"]`)?.value || null;
+        const inicioIntervalo = horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="inicio-intervalo"]`)?.value || null;
+        const voltaIntervalo = horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="volta-intervalo"]`)?.value || null;
         const fim = horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="fim"]`)?.value || null;
         const intv = Number(horariosBody.querySelector(`input[data-dia="${d.id}"][data-field="intervalo"]`)?.value || 30);
 
         if (!ativo) {
-          return { barbeiro_id: meuBarbeiroId, dia_semana: d.id, ativo: false, hora_inicio: null, hora_fim: null, intervalo_minutos: intv };
+          return {
+            barbeiro_id: meuBarbeiroId,
+            dia_semana: d.id,
+            ativo: false,
+            hora_inicio: null,
+            hora_intervalo_inicio: null,
+            hora_intervalo_fim: null,
+            hora_fim: null,
+            intervalo_minutos: intv
+          };
         }
         if (!inicio || !fim) throw new Error(`Preencha inicio e fim para ${d.nome}.`);
         if (inicio >= fim) throw new Error(`Horario invalido em ${d.nome}: inicio deve ser menor que fim.`);
+        if ((inicioIntervalo && !voltaIntervalo) || (!inicioIntervalo && voltaIntervalo)) {
+          throw new Error(`Preencha inicio e volta do intervalo de ${d.nome}.`);
+        }
+        if (inicioIntervalo && voltaIntervalo) {
+          if (!(inicio < inicioIntervalo && inicioIntervalo < voltaIntervalo && voltaIntervalo < fim)) {
+            throw new Error(`Intervalo de almoco invalido em ${d.nome}.`);
+          }
+        }
         if (!Number.isFinite(intv) || intv < 5 || intv > 120) {
           throw new Error(`Intervalo invalido em ${d.nome}: use um valor entre 5 e 120 minutos.`);
         }
-        return { barbeiro_id: meuBarbeiroId, dia_semana: d.id, ativo: true, hora_inicio: inicio, hora_fim: fim, intervalo_minutos: intv };
+        return {
+          barbeiro_id: meuBarbeiroId,
+          dia_semana: d.id,
+          ativo: true,
+          hora_inicio: inicio,
+          hora_intervalo_inicio: inicioIntervalo,
+          hora_intervalo_fim: voltaIntervalo,
+          hora_fim: fim,
+          intervalo_minutos: intv
+        };
       });
 
       const { error } = await window.sb.from('barbeiro_horarios').upsert(rows, { onConflict: 'barbeiro_id,dia_semana' });
@@ -148,7 +185,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     semanaRefInput.value = isoDate(new Date());
-    defaults = await loadConfigAgendaDefault();
     meuBarbeiroId = await getMeuBarbeiroId();
     if (!meuBarbeiroId) {
       window.AppUtils.notify(info, 'Seu usuario nao possui barbeiro vinculado.', true);
