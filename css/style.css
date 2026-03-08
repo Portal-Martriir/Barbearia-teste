@@ -407,6 +407,7 @@ li + li {
   align-self: flex-start;
   background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
   border-right: 1px solid rgba(148, 163, 184, 0.16);
+  overflow-y: auto;
 }
 
 .sidebar-card {
@@ -433,6 +434,9 @@ li + li {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(148, 163, 184, 0.2);
   color: #cbd5e1;
+  white-space: normal;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .sidebar .nav a.active {
@@ -944,7 +948,10 @@ li + li {
 
   .content-area .topbar-inner {
     width: min(1120px, 94vw);
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
   }
 
   .content-area .topbar-inner > div:last-child {
@@ -959,6 +966,13 @@ li + li {
     font-size: 14px;
   }
 
+  .content-area .topbar .brand {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
   .sidebar {
     position: fixed;
     z-index: 40;
@@ -970,6 +984,7 @@ li + li {
     width: min(84vw, 300px);
     padding: 18px 12px;
     box-shadow: 18px 0 38px rgba(2, 6, 23, 0.3);
+    overscroll-behavior: contain;
   }
 
   .sidebar-overlay {
@@ -1061,6 +1076,10 @@ li + li {
     font-size: 12px;
   }
 
+  .content-area .topbar-inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
   .content-area .topbar .brand {
     font-size: 16px;
     gap: 8px;
@@ -1095,7 +1114,7 @@ li + li {
   }
 
   .table {
-    min-width: 560px;
+    min-width: 520px;
   }
 
   .table th,
