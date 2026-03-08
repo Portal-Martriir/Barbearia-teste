@@ -1,11 +1,12 @@
-﻿window.Auth = {
+window.Auth = {
   paths() {
     const inPages = window.location.pathname.includes('/pages/');
     return {
       login: inPages ? '../login.html' : './login.html',
       dashboard: inPages ? './dashboard.html' : './pages/dashboard.html',
       barbeiro: inPages ? './barbeiro.html' : './pages/barbeiro.html',
-      cliente: inPages ? './cliente.html' : './pages/cliente.html'
+      cliente: inPages ? './cliente.html' : './pages/cliente.html',
+      meusDados: inPages ? './meus-dados.html' : './pages/meus-dados.html'
     };
   },
 
@@ -32,14 +33,47 @@
 
     const { data, error } = await window.sb
       .from('usuarios')
-      .select('id, nome, perfil, ativo')
+      .select('id, nome, email, perfil, ativo')
       .eq('id', session.user.id)
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return null;
-    if (!data?.ativo) return null;
-    return data;
+    if (data && !data.ativo) return null;
+
+    if (data) {
+      return {
+        ...data,
+        email: data.email || session.user.email || ''
+      };
+    }
+
+    return {
+      id: session.user.id,
+      nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Usuario',
+      email: session.user.email || '',
+      perfil: 'cliente',
+      ativo: true
+    };
+  },
+
+  async getUserProfile() {
+    const session = await this.getSession();
+    if (!session?.user?.id) return null;
+
+    try {
+      const roleData = await this.getCurrentUserRole();
+      if (roleData) return roleData;
+    } catch (err) {
+      console.error('Falha ao carregar perfil em usuarios:', err);
+    }
+
+    return {
+      id: session.user.id,
+      nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Usuario',
+      email: session.user.email || '',
+      perfil: 'cliente',
+      ativo: true
+    };
   },
 
   async requireAuth(allowedProfiles = []) {
@@ -51,6 +85,7 @@
       window.location.href = this.paths().login;
       return null;
     }
+
     if (!userInfo) {
       window.location.href = this.paths().login;
       return null;

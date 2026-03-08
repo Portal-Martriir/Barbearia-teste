@@ -13,6 +13,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const calTitle = document.getElementById('cal-title');
   const calGrid = document.getElementById('calendar-grid');
 
+  if (!tbody || !filtroBarbeiro || !dataInput || !dataLabel || !calTitle || !calGrid) {
+    window.AppUtils.notify(info, 'Elementos da agenda nao foram encontrados.', true);
+    return;
+  }
+
   let selectedDate = new Date();
   let viewMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
 
@@ -75,40 +80,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderCalendar();
   }
 
+  function actionsForRow(row) {
+    const locked = ['concluido', 'cancelado', 'desistencia_cliente'].includes(row.status);
+    if (locked) {
+      return '<span class="muted">Sem acoes</span>';
+    }
+
+    return `
+      <div class="action-wrap">
+        ${row.status === 'agendado' ? `<button class="btn-secondary" data-action="iniciar" data-id="${row.id}">Iniciar</button>` : ''}
+        <button class="btn-secondary" data-action="concluir" data-id="${row.id}">Concluir</button>
+        <button class="btn-danger" data-action="cancelar" data-id="${row.id}">Cancelar</button>
+        <button class="btn-warning" data-action="desistencia" data-id="${row.id}">Desistencia</button>
+        <button class="btn-secondary" data-action="pagto" data-id="${row.id}" data-next="${row.pagamento_status === 'pago' ? 'pendente' : 'pago'}">
+          ${row.pagamento_status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}
+        </button>
+      </div>
+    `;
+  }
+
   async function loadAgendamentos() {
     try {
       await window.Api.runAutoCompletion();
       const rows = await window.Api.listAgendamentosByDate(dataInput.value, filtroBarbeiro.value);
 
-      tbody.innerHTML = rows.map((r) => `
-        <tr>
-          <td>${r.clientes?.nome || '-'}</td>
-          <td>${r.barbeiros?.nome || '-'}</td>
-          <td>${r.servicos?.nome || '-'}</td>
-          <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
-          <td><span class="badge ${r.status}">${r.status}</span></td>
-          <td><span class="badge ${r.pagamento_status}">${r.pagamento_status}</span></td>
-          <td>${window.AppUtils.formatMoney(r.valor)}</td>
-          <td>
-            <button class="btn-secondary" data-action="concluir" data-id="${r.id}">Concluir</button>
-            <button class="btn-secondary" data-action="pagto" data-id="${r.id}" data-next="${r.pagamento_status === 'pago' ? 'pendente' : 'pago'}">
-              ${r.pagamento_status === 'pago' ? 'Marcar pendente' : 'Marcar pago'}
-            </button>
-            <button class="btn-danger" data-action="cancelar" data-id="${r.id}">Cancelar</button>
-          </td>
-        </tr>
-      `).join('');
+      tbody.innerHTML = rows.length === 0
+        ? '<tr><td colspan="8">Sem agendamentos para a data selecionada.</td></tr>'
+        : rows.map((r) => `
+          <tr>
+            <td>${r.clientes?.nome || '-'}</td>
+            <td>${r.barbeiros?.nome || '-'}</td>
+            <td>${r.servicos?.nome || '-'}</td>
+            <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
+            <td><span class="badge ${r.status}">${r.status}</span></td>
+            <td><span class="badge ${r.pagamento_status}">${r.pagamento_status}</span></td>
+            <td>${window.AppUtils.formatMoney(r.valor)}</td>
+            <td>${actionsForRow(r)}</td>
+          </tr>
+        `).join('');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
   }
 
-  document.getElementById('btn-cal-prev').addEventListener('click', () => {
+  async function updateStatus(id, nextStatus) {
+    const { data, error } = await window.sb
+      .from('agendamentos')
+      .select('status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error('Agendamento nao encontrado.');
+    if (data.status === 'concluido') throw new Error('Nao e permitido alterar agendamento concluido.');
+
+    const finais = ['cancelado', 'desistencia_cliente'];
+    if (finais.includes(data.status) && data.status !== nextStatus) {
+      throw new Error('Agendamento finalizado nao pode ser alterado.');
+    }
+
+    await window.Api.updateAgendamento(id, { status: nextStatus });
+  }
+
+  document.getElementById('btn-cal-prev')?.addEventListener('click', () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
     renderCalendar();
   });
 
-  document.getElementById('btn-cal-next').addEventListener('click', () => {
+  document.getElementById('btn-cal-next')?.addEventListener('click', () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
     renderCalendar();
   });
@@ -130,8 +169,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const action = btn.dataset.action;
 
     try {
-      if (action === 'concluir') await window.Api.updateAgendamento(id, { status: 'concluido' });
-      if (action === 'cancelar') await window.Api.updateAgendamento(id, { status: 'cancelado' });
+      if (action === 'iniciar') await updateStatus(id, 'em_atendimento');
+      if (action === 'concluir') await updateStatus(id, 'concluido');
+      if (action === 'cancelar') {
+        const ok = window.confirm('Confirma o cancelamento deste agendamento?');
+        if (!ok) return;
+        await updateStatus(id, 'cancelado');
+      }
+      if (action === 'desistencia') {
+        const ok = window.confirm('Confirma marcar como desistencia do cliente?');
+        if (!ok) return;
+        await updateStatus(id, 'desistencia_cliente');
+      }
       if (action === 'pagto') await window.Api.updateAgendamento(id, { pagamento_status: btn.dataset.next });
 
       await loadAgendamentos();

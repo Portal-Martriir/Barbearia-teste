@@ -29,7 +29,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const historico = rows.filter((r) => r.status === 'concluido');
     document.getElementById('cliente-total-servicos').textContent = String(historico.length);
-    document.getElementById('cliente-total-agendados').textContent = String(rows.filter((r) => r.status === 'agendado').length);
+    document.getElementById('cliente-total-agendados').textContent = String(
+      rows.filter((r) => r.status === 'agendado' || r.status === 'em_atendimento').length
+    );
 
     historyBody.innerHTML = historico.length === 0
       ? '<tr><td colspan="4">Sem historico.</td></tr>'
@@ -47,7 +49,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const session = await getSessionOrRedirect();
     if (!session) return;
 
-    const displayName = session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
+    const profile = await window.Auth.getUserProfile();
+    const displayName = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
     const telefone = session.user.user_metadata?.telefone || null;
 
     const { error: ensureError } = await window.sb.rpc('garantir_cliente_auth', {
@@ -57,7 +60,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     if (ensureError) throw ensureError;
 
-    await window.CommonUI.setupLayout({ nome: displayName, perfil: 'cliente' });
+    await window.CommonUI.setupLayout({
+      nome: displayName,
+      email: profile?.email || session.user.email || '',
+      perfil: profile?.perfil || 'cliente'
+    });
     document.getElementById('cliente-nome-topo').textContent = displayName;
     await loadDashboard();
   } catch (err) {

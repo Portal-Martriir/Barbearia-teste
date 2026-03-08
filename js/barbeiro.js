@@ -7,10 +7,89 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const info = document.getElementById('barbeiro-info');
   const agendaDataInput = document.getElementById('agenda-data-barbeiro');
+  const agendaDataInicioInput = document.getElementById('agenda-data-inicio-barbeiro');
+  const agendaDataFimInput = document.getElementById('agenda-data-fim-barbeiro');
+  const periodoSelect = document.getElementById('barbeiro-periodo');
+  const refWrap = document.getElementById('barbeiro-ref-wrap');
+  const inicioWrap = document.getElementById('barbeiro-data-inicio-wrap');
+  const fimWrap = document.getElementById('barbeiro-data-fim-wrap');
   const agendaBody = document.getElementById('lista-agenda-barbeiro');
   const historicoBody = document.getElementById('historico-barbeiro-body');
 
-  agendaDataInput.value = window.AppUtils.todayISO();
+  if (!periodoSelect || !agendaDataInput || !agendaDataInicioInput || !agendaDataFimInput || !agendaBody || !historicoBody) {
+    window.AppUtils.notify(info, 'Elementos obrigatorios do painel nao foram encontrados.', true);
+    return;
+  }
+
+  const hojeISO = window.AppUtils.todayISO();
+  agendaDataInput.value = hojeISO;
+  agendaDataInicioInput.value = hojeISO;
+  agendaDataFimInput.value = hojeISO;
+
+  function toDateOnly(value) {
+    return new Date(`${value}T00:00:00`);
+  }
+
+  function toISO(date) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  function showDateFilters() {
+    const periodo = periodoSelect.value || 'hoje';
+    const custom = periodo === 'personalizado';
+    const reference = periodo === 'dia';
+
+    if (refWrap) refWrap.hidden = !reference;
+    if (inicioWrap) inicioWrap.hidden = !custom;
+    if (fimWrap) fimWrap.hidden = !custom;
+  }
+
+  function periodRange(periodo, refDateISO) {
+    const hoje = toDateOnly(window.AppUtils.todayISO());
+    const inicio = new Date(hoje);
+    const fim = new Date(hoje);
+
+    if (periodo === 'ontem') {
+      inicio.setDate(inicio.getDate() - 1);
+      fim.setDate(fim.getDate() - 1);
+    } else if (periodo === 'semana') {
+      inicio.setDate(inicio.getDate() - inicio.getDay());
+      fim.setDate(inicio.getDate() + 6);
+    } else if (periodo === 'mes') {
+      inicio.setDate(1);
+      fim.setMonth(inicio.getMonth() + 1);
+      fim.setDate(0);
+    } else if (periodo === 'personalizado') {
+      const inicioCustom = agendaDataInicioInput.value;
+      const fimCustom = agendaDataFimInput.value;
+
+      if (!inicioCustom || !fimCustom) {
+        throw new Error('Informe data inicial e data final para o periodo personalizado.');
+      }
+
+      const inicioDate = toDateOnly(inicioCustom);
+      const fimDate = toDateOnly(fimCustom);
+      if (inicioDate > fimDate) {
+        throw new Error('A data inicial nao pode ser maior que a data final.');
+      }
+
+      return {
+        inicioISO: toISO(inicioDate),
+        fimISO: toISO(fimDate)
+      };
+    } else if (periodo === 'dia') {
+      const ref = toDateOnly(refDateISO || hojeISO);
+      return {
+        inicioISO: toISO(ref),
+        fimISO: toISO(ref)
+      };
+    }
+
+    return {
+      inicioISO: toISO(inicio),
+      fimISO: toISO(fim)
+    };
+  }
 
   async function getMeuBarbeiroId() {
     const { data, error } = await window.sb
@@ -23,7 +102,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     return data?.id || null;
   }
 
-  async function loadResumoDia(barbeiroId) {
+  async function loadAgendamentosPeriodo(barbeiroId) {
+    if (!barbeiroId) return [];
+
+    const periodo = periodoSelect.value || 'hoje';
+    const { inicioISO, fimISO } = periodRange(periodo, agendaDataInput.value);
+
+    const { data, error } = await window.sb
+      .from('agendamentos')
+      .select('id, data, hora_inicio, hora_fim, status, pagamento_pendente, clientes(nome), servicos(nome), valor, motivo_cancelamento, cancelado_em')
+      .eq('barbeiro_id', barbeiroId)
+      .gte('data', inicioISO)
+      .lte('data', fimISO)
+      .order('data', { ascending: true })
+      .order('hora_inicio', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  function buildStatusActions(row) {
+    if (row.status === 'concluido' || row.status === 'cancelado' || row.status === 'desistencia_cliente') {
+      return '-';
+    }
+
+    const buttons = [];
+    if (row.status === 'agendado') {
+      buttons.push(`<button class="btn-secondary" data-action="iniciar" data-id="${row.id}">Iniciar</button>`);
+    }
+
+    buttons.push(`<button class="btn-secondary" data-action="concluir" data-id="${row.id}">Concluir</button>`);
+    buttons.push(`<button class="btn-danger" data-action="cancelar" data-id="${row.id}">Cancelar</button>`);
+    buttons.push(`<button class="btn-warning" data-action="desistencia" data-id="${row.id}">Desistencia</button>`);
+
+    return `<div class="action-wrap">${buttons.join('')}</div>`;
+  }
+
+  function formatMotivo(row) {
+    if (row.status !== 'cancelado' && row.status !== 'desistencia_cliente') {
+      return '-';
+    }
+
+    const motivo = String(row.motivo_cancelamento || '').trim();
+    if (!motivo) return '-';
+
+    return motivo;
+  }
+
+  async function loadResumoPeriodo(barbeiroId) {
     if (!barbeiroId) {
       document.getElementById('card-atendimentos-hoje').textContent = '0';
       document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(0);
@@ -31,119 +157,207 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('card-proximos-clientes').textContent = 'Sem proximos clientes.';
       return;
     }
-    const hoje = window.AppUtils.todayISO();
-    const [agRes, comRes] = await Promise.all([
-      window.sb
-        .from('agendamentos')
-        .select('id, data, hora_inicio, status, valor, clientes(nome)')
-        .eq('barbeiro_id', barbeiroId)
-        .eq('data', hoje)
-        .order('hora_inicio', { ascending: true }),
-      window.sb
-        .from('comissoes')
-        .select('valor_comissao, data')
-        .eq('barbeiro_id', barbeiroId)
-        .eq('data', hoje)
-    ]);
-    if (agRes.error) throw agRes.error;
-    if (comRes.error) throw comRes.error;
 
-    const rows = agRes.data || [];
-    const comRows = comRes.data || [];
+    const rows = await loadAgendamentosPeriodo(barbeiroId);
+    const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'hoje', agendaDataInput.value);
+
+    const { data: comRows, error: comError } = await window.sb
+      .from('comissoes')
+      .select('valor_comissao, data')
+      .eq('barbeiro_id', barbeiroId)
+      .gte('data', inicioISO)
+      .lte('data', fimISO);
+    if (comError) throw comError;
+
     const agora = new Date();
-
-    const atendimentosDia = rows.filter((r) => r.status !== 'cancelado').length;
-    const faturadoDia = rows
+    const atendimentos = rows.filter((r) => !['cancelado', 'desistencia_cliente'].includes(r.status)).length;
+    const faturado = rows
       .filter((r) => r.status === 'concluido')
       .reduce((acc, r) => acc + Number(r.valor || 0), 0);
-    const comissaoDia = comRows.reduce((acc, r) => acc + Number(r.valor_comissao || 0), 0);
+    const comissao = (comRows || []).reduce((acc, r) => acc + Number(r.valor_comissao || 0), 0);
 
     const proximos = rows
       .filter((r) => r.status === 'agendado' || r.status === 'em_atendimento')
       .filter((r) => new Date(`${r.data}T${r.hora_inicio}`) >= agora)
       .slice(0, 4);
 
-    document.getElementById('card-atendimentos-hoje').textContent = String(atendimentosDia);
-    document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(faturadoDia);
-    document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(comissaoDia);
+    document.getElementById('card-atendimentos-hoje').textContent = String(atendimentos);
+    document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(faturado);
+    document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(comissao);
     document.getElementById('card-proximos-clientes').innerHTML = proximos.length === 0
       ? 'Sem proximos clientes.'
-      : proximos.map((p) => `${String(p.hora_inicio).slice(0, 5)} - ${p.clientes?.nome || '-'}`).join('<br/>');
+      : proximos.map((p) => `${window.AppUtils.formatDate(p.data)} ${String(p.hora_inicio).slice(0, 5)} - ${p.clientes?.nome || '-'}`).join('<br/>');
   }
 
-  async function loadAgendaDia(barbeiroId) {
+  async function loadAgendaPeriodo(barbeiroId) {
     if (!barbeiroId) {
-      agendaBody.innerHTML = '<tr><td colspan="6">Nenhum agendamento.</td></tr>';
+      agendaBody.innerHTML = '<tr><td colspan="8">Nenhum agendamento.</td></tr>';
       return;
     }
-    const data = agendaDataInput.value;
-    const { data: rows, error } = await window.sb
-      .from('agendamentos')
-      .select('id, hora_inicio, hora_fim, status, pagamento_pendente, clientes(nome), servicos(nome)')
-      .eq('barbeiro_id', barbeiroId)
-      .eq('data', data)
-      .order('hora_inicio', { ascending: true });
-    if (error) throw error;
 
-    agendaBody.innerHTML = (rows || []).map((r) => `
-      <tr>
-        <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
-        <td>${r.clientes?.nome || '-'}</td>
-        <td>${r.servicos?.nome || '-'}</td>
-        <td><span class="badge ${r.status}">${r.status}</span></td>
-        <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
-      </tr>
-    `).join('');
+    const rows = await loadAgendamentosPeriodo(barbeiroId);
+    agendaBody.innerHTML = rows.length === 0
+      ? '<tr><td colspan="8">Sem agendamentos para o periodo selecionado.</td></tr>'
+      : rows.map((r) => `
+        <tr>
+          <td>${window.AppUtils.formatDate(r.data)}</td>
+          <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
+          <td>${r.clientes?.nome || '-'}</td>
+          <td>${r.servicos?.nome || '-'}</td>
+          <td><span class="badge ${r.status}">${r.status}</span></td>
+          <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
+          <td>${formatMotivo(r)}</td>
+          <td>${buildStatusActions(r)}</td>
+        </tr>
+      `).join('');
   }
 
   async function loadHistorico(barbeiroId) {
     if (!barbeiroId) {
-      historicoBody.innerHTML = '<tr><td colspan="6">Sem historico.</td></tr>';
+      historicoBody.innerHTML = '<tr><td colspan="7">Sem historico.</td></tr>';
       return;
     }
-    const { data: rows, error } = await window.sb
-      .from('agendamentos')
-      .select('data, valor, pagamento_pendente, clientes(nome), servicos(nome)')
-      .eq('barbeiro_id', barbeiroId)
-      .eq('status', 'concluido')
-      .order('data', { ascending: false })
-      .limit(120);
-    if (error) throw error;
 
-    historicoBody.innerHTML = (rows || []).length === 0
-      ? '<tr><td colspan="6">Sem historico.</td></tr>'
-      : rows.map((r) => `
+    const rows = await loadAgendamentosPeriodo(barbeiroId);
+    const historico = rows.filter((r) => ['concluido', 'cancelado', 'desistencia_cliente'].includes(r.status));
+
+    historicoBody.innerHTML = historico.length === 0
+      ? '<tr><td colspan="7">Sem historico.</td></tr>'
+      : historico.map((r) => `
         <tr>
           <td>${r.clientes?.nome || '-'}</td>
           <td>${r.servicos?.nome || '-'}</td>
           <td>${window.AppUtils.formatMoney(r.valor)}</td>
           <td>${window.AppUtils.formatDate(r.data)}</td>
-          <td>-</td>
+          <td><span class="badge ${r.status}">${r.status}</span></td>
+          <td>${formatMotivo(r)}</td>
           <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
         </tr>
       `).join('');
   }
 
+  async function persistAgendamentoStatus(id, payload) {
+    const { error } = await window.sb
+      .from('agendamentos')
+      .update(payload)
+      .eq('id', id);
+
+    if (!error) return;
+
+    const message = String(error.message || '').toLowerCase();
+    const hasCancelExtras = Object.prototype.hasOwnProperty.call(payload, 'motivo_cancelamento')
+      || Object.prototype.hasOwnProperty.call(payload, 'cancelado_em')
+      || Object.prototype.hasOwnProperty.call(payload, 'cancelado_por');
+
+    if (hasCancelExtras && (message.includes('column') || message.includes('motivo_cancelamento') || message.includes('cancelado_'))) {
+      const { error: fallbackError } = await window.sb
+        .from('agendamentos')
+        .update({ status: payload.status })
+        .eq('id', id);
+
+      if (fallbackError) throw fallbackError;
+      return;
+    }
+
+    throw error;
+  }
+
+  async function updateStatusWithValidation(id, nextStatus, motivo = null) {
+    const { data: current, error: currentError } = await window.sb
+      .from('agendamentos')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (currentError) throw currentError;
+    if (!current) throw new Error('Agendamento nao encontrado.');
+    if (current.status === 'concluido') throw new Error('Nao e permitido alterar agendamento concluido.');
+
+    const finais = ['cancelado', 'desistencia_cliente'];
+    if (finais.includes(current.status) && nextStatus !== current.status) {
+      throw new Error('Agendamento ja finalizado e nao pode ser alterado.');
+    }
+
+    const payload = { status: nextStatus };
+
+    if (nextStatus === 'cancelado' || nextStatus === 'desistencia_cliente') {
+      payload.motivo_cancelamento = motivo;
+      payload.cancelado_em = new Date().toISOString();
+      payload.cancelado_por = user.id;
+    }
+
+    await persistAgendamentoStatus(id, payload);
+  }
+
   async function refreshAll(barbeiroId) {
     await Promise.all([
-      loadResumoDia(barbeiroId),
-      loadAgendaDia(barbeiroId),
+      loadResumoPeriodo(barbeiroId),
+      loadAgendaPeriodo(barbeiroId),
       loadHistorico(barbeiroId)
     ]);
   }
 
   let barbeiroId = null;
 
-  agendaDataInput.addEventListener('change', async () => {
+  async function onFilterChange() {
     try {
-      await loadAgendaDia(barbeiroId);
-      await loadResumoDia(barbeiroId);
+      showDateFilters();
+      await refreshAll(barbeiroId);
+    } catch (err) {
+      window.AppUtils.notify(info, err.message, true);
+    }
+  }
+
+  agendaDataInput.addEventListener('change', onFilterChange);
+  agendaDataInicioInput.addEventListener('change', onFilterChange);
+  agendaDataFimInput.addEventListener('change', onFilterChange);
+  periodoSelect.addEventListener('change', onFilterChange);
+
+  agendaBody.addEventListener('click', async (ev) => {
+    const btn = ev.target.closest('button[data-action][data-id]');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+
+    try {
+      if (action === 'iniciar') {
+        await updateStatusWithValidation(id, 'em_atendimento');
+      } else if (action === 'concluir') {
+        await updateStatusWithValidation(id, 'concluido');
+      } else if (action === 'cancelar') {
+        const ok = window.confirm('Confirma cancelamento deste atendimento?');
+        if (!ok) return;
+
+        const motivo = window.prompt('Informe o motivo do cancelamento:');
+        if (motivo === null) return;
+        if (!motivo.trim()) {
+          throw new Error('Informe o motivo do cancelamento.');
+        }
+
+        await updateStatusWithValidation(id, 'cancelado', motivo.trim());
+      } else if (action === 'desistencia') {
+        const ok = window.confirm('Confirma marcar como desistencia do cliente?');
+        if (!ok) return;
+
+        const motivo = window.prompt('Informe o motivo da desistencia:');
+        if (motivo === null) return;
+        if (!motivo.trim()) {
+          throw new Error('Informe o motivo da desistencia.');
+        }
+
+        await updateStatusWithValidation(id, 'desistencia_cliente', motivo.trim());
+      }
+
+      await refreshAll(barbeiroId);
+      window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
   });
 
   try {
+    showDateFilters();
     barbeiroId = await getMeuBarbeiroId();
     await refreshAll(barbeiroId);
     if (!barbeiroId) {

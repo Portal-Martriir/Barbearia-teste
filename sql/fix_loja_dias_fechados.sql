@@ -139,7 +139,7 @@ begin
       from public.agendamentos a
       where a.barbeiro_id = p_barbeiro_id
         and a.data = p_data
-        and a.status <> 'cancelado'
+        and a.status not in ('cancelado','desistencia_cliente')
         and (v_cursor < a.hora_fim and (v_cursor + make_interval(mins => v_duracao))::time > a.hora_inicio)
     ) then
       if (p_data > current_date) or (p_data = current_date and v_cursor > localtime) then

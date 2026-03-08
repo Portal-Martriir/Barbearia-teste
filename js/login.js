@@ -207,10 +207,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('form-register').addEventListener('submit', async (ev) => {
     ev.preventDefault();
+    const nome = document.getElementById('reg-nome').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
     const telefone = document.getElementById('reg-telefone').value.trim();
-    const nomePadrao = email.split('@')[0] || 'Cliente';
+    const nomePadrao = nome || email.split('@')[0] || 'Cliente';
+
+    if (!nome) {
+      window.AppUtils.notify(registerInfo, 'Informe seu nome para concluir o registro.', true);
+      return;
+    }
 
     try {
       const { data: signUpData, error: signUpError } = await window.sb.auth.signUp({

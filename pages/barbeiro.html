@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel do Barbeiro | Barbearia App</title>
+  <title>Painel do Barbeiro | integralissolucoes</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body class="app-page">
@@ -12,7 +12,7 @@
   <div class="app-shell">
     <aside class="sidebar">
       <div class="sidebar-card">
-        <span class="brand">Barbearia App</span>
+        <span class="brand">integralissolucoes</span>
         <nav class="nav">
           <a href="./dashboard.html" data-admin-only>Dashboard</a>
           <a href="./cadastro.html" data-admin-only>Cadastros</a>
@@ -35,7 +35,7 @@
       <header class="topbar">
         <div class="topbar-inner">
           <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
-          <span class="brand">Barbearia App</span>
+          <span class="brand">integralissolucoes</span>
           <div>
             <span data-user-name></span>
             <button data-logout class="btn-secondary">Sair</button>
@@ -48,9 +48,9 @@
         <p id="barbeiro-info" class="muted"></p>
 
         <section class="grid">
-          <article class="card"><h3>Atendimentos de hoje</h3><div id="card-atendimentos-hoje" class="value">0</div></article>
-          <article class="card"><h3>Faturado hoje</h3><div id="card-faturado-hoje" class="value">R$ 0,00</div></article>
-          <article class="card"><h3>Comissao de hoje</h3><div id="card-comissao-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Atendimentos no periodo</h3><div id="card-atendimentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Faturado no periodo</h3><div id="card-faturado-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Comissao no periodo</h3><div id="card-comissao-hoje" class="value">R$ 0,00</div></article>
           <article class="card">
             <h3>Proximos clientes</h3>
             <div id="card-proximos-clientes" class="muted">Sem proximos clientes.</div>
@@ -59,20 +59,40 @@
 
         <section class="card">
           <div class="rowBetween">
-            <h3>Agendamentos do dia</h3>
-            <label>Data
-              <input id="agenda-data-barbeiro" type="date" />
-            </label>
+            <h3>Agenda do barbeiro</h3>
+            <div class="form-row compact-filters">
+              <label>Periodo
+                <select id="barbeiro-periodo">
+                  <option value="hoje">Hoje</option>
+                  <option value="ontem">Ontem</option>
+                  <option value="semana">Esta semana</option>
+                  <option value="mes">Este mes</option>
+                  <option value="personalizado">Periodo personalizado</option>
+                </select>
+              </label>
+              <label id="barbeiro-ref-wrap" hidden>Data de referencia
+                <input id="agenda-data-barbeiro" type="date" />
+              </label>
+              <label id="barbeiro-data-inicio-wrap" hidden>Data inicial
+                <input id="agenda-data-inicio-barbeiro" type="date" />
+              </label>
+              <label id="barbeiro-data-fim-wrap" hidden>Data final
+                <input id="agenda-data-fim-barbeiro" type="date" />
+              </label>
+            </div>
           </div>
           <div class="table-wrap">
             <table class="table">
               <thead>
                 <tr>
+                  <th>Data</th>
                   <th>Horario</th>
                   <th>Cliente</th>
                   <th>Servico</th>
                   <th>Status</th>
                   <th>Pagamento</th>
+                  <th>Motivo</th>
+                  <th>Acoes</th>
                 </tr>
               </thead>
               <tbody id="lista-agenda-barbeiro"></tbody>
@@ -90,7 +110,8 @@
                   <th>Servico</th>
                   <th>Valor</th>
                   <th>Data</th>
-                  <th>Forma pagamento</th>
+                  <th>Status</th>
+                  <th>Motivo</th>
                   <th>Status pagamento</th>
                 </tr>
               </thead>
@@ -98,7 +119,6 @@
             </table>
           </div>
         </section>
-
       </main>
     </div>
   </div>
@@ -113,3 +133,4 @@
   <script src="../js/barbeiro.js"></script>
 </body>
 </html>
+

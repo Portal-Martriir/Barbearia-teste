@@ -144,17 +144,22 @@
     };
   },
 
-  async barbeiroPainel(barbeiroId, periodo = 'hoje') {
-    const hoje = new Date();
-    let inicio = new Date(hoje);
+  async barbeiroPainel(barbeiroId, periodo = 'dia', dataRef = null) {
+    const ref = dataRef ? new Date(`${dataRef}T00:00:00`) : new Date();
+    const inicio = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+    const fim = new Date(inicio);
 
     if (periodo === 'semana') {
-      inicio.setDate(hoje.getDate() - hoje.getDay());
+      inicio.setDate(inicio.getDate() - inicio.getDay());
+      fim.setDate(inicio.getDate() + 6);
     } else if (periodo === 'mes') {
-      inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      inicio.setDate(1);
+      fim.setMonth(inicio.getMonth() + 1);
+      fim.setDate(0);
     }
 
     const inicioISO = inicio.toISOString().slice(0, 10);
+    const fimISO = fim.toISOString().slice(0, 10);
 
     const [ags, fin, bar] = await Promise.all([
       window.sb
@@ -162,12 +167,14 @@
         .select('*, clientes(nome), servicos(nome)')
         .eq('barbeiro_id', barbeiroId)
         .gte('data', inicioISO)
+        .lte('data', fimISO)
         .order('data', { ascending: false }),
       window.sb
         .from('financeiro')
         .select('*')
         .eq('barbeiro_id', barbeiroId)
-        .gte('data', inicioISO),
+        .gte('data', inicioISO)
+        .lte('data', fimISO),
       window.sb
         .from('barbeiros')
         .select('saldo_barbeiro, nome')

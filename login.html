@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login | Barbearia App</title>
+  <title>Login | integralissolucoes</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -14,9 +14,9 @@
     <section class="auth-card">
       <header class="auth-card-top">
         <div class="auth-logo-slot">
-          <img src="./assets/logomartree.png" alt="Logo BarberShop" />
+          <img src="./assets/LOGOINTEGRALIS.png" alt="Logo integralissolucoes" />
         </div>
-        <h1>Bem-vindo(a) a BarberShop</h1>
+        <h1>Bem-vindo(a) a integralissolucoes</h1>
         <p class="muted">Escolha uma opcao para entrar, registrar ou agendar sem cadastro.</p>
         <h2>Entrar na conta</h2>
         <p class="muted">Acesse com sua conta ou agende sem cadastro.</p>
@@ -46,6 +46,9 @@
 
       <div class="auth-panel" id="panel-registrar">
         <form id="form-register" class="auth-form">
+          <label>Nome
+            <input id="reg-nome" type="text" required />
+          </label>
           <label>Email
             <input id="reg-email" type="email" required />
           </label>
@@ -99,7 +102,14 @@
         <p id="agendar-info" class="muted auth-status"></p>
       </div>
 
-      <p class="muted auth-footnote">Perfis suportados: <strong>admin</strong>, <strong>barbeiro</strong> e <strong>cliente</strong>.</p>
+      <p class="auth-footnote">
+        <a
+          class="auth-integralis-link"
+          href="https://integralissolucoes.com.br"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Criado por Integralis</a>
+      </p>
     </section>
   </main>
 
@@ -111,3 +121,7 @@
   <script src="./js/login.js"></script>
 </body>
 </html>
+
+
+
+

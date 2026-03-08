@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const calTitle = document.getElementById('cal-title');
   const calGrid = document.getElementById('calendar-grid');
 
+  if (!info || !slotsEl || !selectedEl || !dataInput || !dataLabel || !servicoSelect || !barbeiroSelect || !calTitle || !calGrid) {
+    return;
+  }
+
   const today = new Date();
   let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   let selectedDate = null;
@@ -116,12 +120,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  document.getElementById('btn-cal-prev').addEventListener('click', () => {
+  document.getElementById('btn-cal-prev')?.addEventListener('click', () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1);
     renderCalendar();
   });
 
-  document.getElementById('btn-cal-next').addEventListener('click', () => {
+  document.getElementById('btn-cal-next')?.addEventListener('click', () => {
     viewMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1);
     renderCalendar();
   });
@@ -151,13 +155,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('focus', () => {
     loadSlots().catch(() => {});
   });
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       loadSlots().catch(() => {});
     }
   });
 
-  document.getElementById('btn-confirmar-agendamento').addEventListener('click', async () => {
+  document.getElementById('btn-confirmar-agendamento')?.addEventListener('click', async () => {
     if (!selectedDate || !dataInput.value) {
       window.AppUtils.notify(info, 'Selecione uma data no calendario.', true);
       return;
@@ -187,8 +192,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const session = await requireSession();
     if (!session) return;
 
-    const nome = session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
+    const profile = await window.Auth.getUserProfile();
+    const nome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
     const telefone = session.user.user_metadata?.telefone || null;
+
     const { error: ensureError } = await window.sb.rpc('garantir_cliente_auth', {
       p_nome: nome,
       p_telefone: telefone,
@@ -196,7 +203,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     if (ensureError) throw ensureError;
 
-    await window.CommonUI.setupLayout({ nome, perfil: 'cliente' });
+    await window.CommonUI.setupLayout({
+      nome,
+      email: profile?.email || session.user.email || '',
+      perfil: profile?.perfil || 'cliente'
+    });
+
     await loadOptions();
     selectedDate = normalizeDate(today);
     dataInput.value = isoDate(selectedDate);

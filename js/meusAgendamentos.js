@@ -20,7 +20,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function renderRows() {
-    const rows = cache.filter((r) => r.status === activeStatus);
+    const rows = cache.filter((r) => {
+      if (activeStatus === 'cancelado') {
+        return r.status === 'cancelado' || r.status === 'desistencia_cliente';
+      }
+      return r.status === activeStatus;
+    });
+
     if (rows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6">Sem agendamentos nesse status.</td></tr>';
       return;
@@ -76,8 +82,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const session = await requireSession();
     if (!session) return;
-    const nome = session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
-    await window.CommonUI.setupLayout({ nome, perfil: 'cliente' });
+
+    const profile = await window.Auth.getUserProfile();
+    const nome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
+
+    await window.CommonUI.setupLayout({
+      nome,
+      email: profile?.email || session.user.email || '',
+      perfil: profile?.perfil || 'cliente'
+    });
     await loadData();
   } catch (err) {
     window.AppUtils.notify(info, err.message, true);

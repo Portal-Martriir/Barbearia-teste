@@ -131,6 +131,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           return { barbeiro_id: meuBarbeiroId, dia_semana: d.id, ativo: false, hora_inicio: null, hora_fim: null, intervalo_minutos: intv };
         }
         if (!inicio || !fim) throw new Error(`Preencha inicio e fim para ${d.nome}.`);
+        if (inicio >= fim) throw new Error(`Horario invalido em ${d.nome}: inicio deve ser menor que fim.`);
+        if (!Number.isFinite(intv) || intv < 5 || intv > 120) {
+          throw new Error(`Intervalo invalido em ${d.nome}: use um valor entre 5 e 120 minutos.`);
+        }
         return { barbeiro_id: meuBarbeiroId, dia_semana: d.id, ativo: true, hora_inicio: inicio, hora_fim: fim, intervalo_minutos: intv };
       });
 

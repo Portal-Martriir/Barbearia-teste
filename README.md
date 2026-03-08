@@ -1,4 +1,4 @@
-﻿# Barbearia App
+# integralissolucoes
 
 Sistema web completo para gerenciamento de barbearia com:
 - HTML, CSS e JavaScript puro
@@ -69,3 +69,4 @@ Sistema web completo para gerenciamento de barbearia com:
 ## Observacao
 
 A funcao de auto conclusao e disparada pelo frontend ao abrir/trocar de tela administrativa. Se quiser 100% server-side por horario sem usuario online, configure um cron (pg_cron/Edge Function) chamando `public.atualizar_agendamentos_atrasados()` periodicamente.
+
