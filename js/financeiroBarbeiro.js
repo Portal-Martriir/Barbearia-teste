@@ -79,6 +79,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     return data?.id || null;
   }
 
+  async function syncServicoPagamento(financeiroId, agendamentoId, statusPagamento) {
+    const isPendente = statusPagamento === 'pendente';
+
+    if (agendamentoId) {
+      const { data: agRows, error: agError } = await window.sb
+        .from('agendamentos')
+        .update({
+          pagamento_status: statusPagamento,
+          pagamento_pendente: isPendente
+        })
+        .eq('id', agendamentoId)
+        .eq('barbeiro_id', barbeiroId)
+        .select('id')
+        .limit(1);
+
+      if (agError) throw agError;
+      if (!agRows?.length) throw new Error('Agendamento vinculado nao foi encontrado para atualizar o pagamento.');
+    }
+
+    const { data: finRows, error: finError } = await window.sb
+      .from('financeiro')
+      .update({ status_pagamento: statusPagamento })
+      .eq('id', financeiroId)
+      .eq('barbeiro_id', barbeiroId)
+      .select('id, status_pagamento')
+      .limit(1);
+
+    if (finError) throw finError;
+    if (!finRows?.length) throw new Error('Lancamento financeiro nao foi encontrado.');
+    if (finRows[0].status_pagamento !== statusPagamento) {
+      throw new Error('Nao foi possivel confirmar a atualizacao do contas a receber.');
+    }
+  }
+
   async function loadFinanceiroBarbeiro(barbeiroId) {
     if (!barbeiroId) {
       bfReceitaPaga.textContent = window.AppUtils.formatMoney(0);
@@ -327,21 +361,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const agendamentoId = btn.dataset.agendamentoId || null;
 
     try {
-      const { error: finError } = await window.sb
-        .from('financeiro')
-        .update({ status_pagamento: 'pendente' })
-        .eq('id', id)
-        .eq('barbeiro_id', barbeiroId);
-      if (finError) throw finError;
-
-      if (agendamentoId) {
-        const { error: agError } = await window.sb
-          .from('agendamentos')
-          .update({ pagamento_status: 'pendente', pagamento_pendente: true })
-          .eq('id', agendamentoId)
-          .eq('barbeiro_id', barbeiroId);
-        if (agError) throw agError;
-      }
+      await syncServicoPagamento(id, agendamentoId, 'pendente');
 
       loadedTabs.delete('resumo');
       loadedTabs.delete('contas');
@@ -360,21 +380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const agendamentoId = btn.dataset.agendamentoId || null;
 
     try {
-      const { error: finError } = await window.sb
-        .from('financeiro')
-        .update({ status_pagamento: 'pago' })
-        .eq('id', id)
-        .eq('barbeiro_id', barbeiroId);
-      if (finError) throw finError;
-
-      if (agendamentoId) {
-        const { error: agError } = await window.sb
-          .from('agendamentos')
-          .update({ pagamento_status: 'pago', pagamento_pendente: false })
-          .eq('id', agendamentoId)
-          .eq('barbeiro_id', barbeiroId);
-        if (agError) throw agError;
-      }
+      await syncServicoPagamento(id, agendamentoId, 'pago');
 
       loadedTabs.delete('resumo');
       loadedTabs.delete('contas');

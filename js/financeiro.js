@@ -183,6 +183,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     return rows.reduce((acc, row) => acc + Number(getValue(row) || 0), 0);
   }
 
+  async function syncServicoPagamento(financeiroId, agendamentoId, statusPagamento) {
+    const isPendente = statusPagamento === 'pendente';
+
+    if (agendamentoId) {
+      const { data: agRows, error: agError } = await window.sb
+        .from('agendamentos')
+        .update({
+          pagamento_status: statusPagamento,
+          pagamento_pendente: isPendente
+        })
+        .eq('id', agendamentoId)
+        .select('id')
+        .limit(1);
+
+      if (agError) throw agError;
+      if (!agRows?.length) throw new Error('Agendamento vinculado nao foi encontrado para atualizar o pagamento.');
+    }
+
+    const { data: finRows, error: finError } = await window.sb
+      .from('financeiro')
+      .update({ status_pagamento: statusPagamento })
+      .eq('id', financeiroId)
+      .select('id, status_pagamento')
+      .limit(1);
+
+    if (finError) throw finError;
+    if (!finRows?.length) throw new Error('Lancamento financeiro nao foi encontrado.');
+    if (finRows[0].status_pagamento !== statusPagamento) {
+      throw new Error('Nao foi possivel confirmar a atualizacao do contas a receber.');
+    }
+  }
+
   function setTab(tab) {
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.financeiroTab === tab));
     Object.entries(panelByTab).forEach(([name, panel]) => {
@@ -450,6 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const servicos = (pendentesServicosRes.data || []).map((row) => ({
       id: row.id,
+      agendamentoId: row.agendamento_id || '',
       tipo: 'servico',
       data: row.data,
       origem: 'Servico',
@@ -484,7 +517,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td><span class="badge ${row.status === 'recebido' ? 'concluido' : 'pendente'}">${row.status}</span></td>
             <td>
               ${row.status === 'pendente'
-                ? `<button type="button" class="btn-secondary" data-action="receber-conta" data-tipo="${row.tipo}" data-id="${row.id}">Marcar recebido</button>`
+                ? `<button type="button" class="btn-secondary" data-action="receber-conta" data-tipo="${row.tipo}" data-id="${row.id}" data-agendamento-id="${window.AppUtils.escapeAttr(row.agendamentoId || '')}">Marcar recebido</button>`
                 : '<span class="muted">Concluido</span>'}
             </td>
           </tr>
@@ -779,26 +812,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const tipo = btn.dataset.tipo;
     const id = btn.dataset.id;
+    const agendamentoId = btn.dataset.agendamentoId || null;
 
     try {
       if (tipo === 'servico') {
-        const { data, error } = await window.sb
-          .from('financeiro')
-          .update({ status_pagamento: 'pago' })
-          .eq('id', id)
-          .select('agendamento_id')
-          .single();
-
-        if (error) throw error;
-
-        if (data?.agendamento_id) {
-          const { error: agError } = await window.sb
-            .from('agendamentos')
-            .update({ pagamento_status: 'pago', pagamento_pendente: false })
-            .eq('id', data.agendamento_id);
-
-          if (agError) throw agError;
-        }
+        await syncServicoPagamento(id, agendamentoId, 'pago');
       } else {
         const { error } = await window.sb
           .from('contas_receber_manuais')
@@ -834,19 +852,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const agendamentoId = btn.dataset.agendamentoId || null;
 
     try {
-      const { error: finError } = await window.sb
-        .from('financeiro')
-        .update({ status_pagamento: 'pendente' })
-        .eq('id', financeiroId);
-      if (finError) throw finError;
-
-      if (agendamentoId) {
-        const { error: agError } = await window.sb
-          .from('agendamentos')
-          .update({ pagamento_status: 'pendente', pagamento_pendente: true })
-          .eq('id', agendamentoId);
-        if (agError) throw agError;
-      }
+      await syncServicoPagamento(financeiroId, agendamentoId, 'pendente');
 
       loadedTabs.delete('contas');
       loadedTabs.delete('receitas');
