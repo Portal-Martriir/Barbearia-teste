@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
+  <script src="./js/security.js"></script>
   <title>Login | DomLucasBarberShop</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,13 +30,13 @@
       </div>
 
       <div class="auth-panel active" id="panel-login">
-        <form id="form-login" class="auth-form">
+        <form id="form-login" class="auth-form" autocomplete="on">
           <label>Email
-            <input id="email" type="email" required />
+            <input id="email" type="email" autocomplete="username" required />
           </label>
 
           <label>Senha
-            <input id="password" type="password" required />
+            <input id="password" type="password" autocomplete="current-password" required />
           </label>
 
           <button class="btn-primary auth-submit" type="submit">Entrar</button>
@@ -43,15 +46,15 @@
       </div>
 
       <div class="auth-panel" id="panel-registrar">
-        <form id="form-register" class="auth-form">
+        <form id="form-register" class="auth-form" autocomplete="on">
           <label>Nome
             <input id="reg-nome" type="text" required />
           </label>
           <label>Email
-            <input id="reg-email" type="email" required />
+            <input id="reg-email" type="email" autocomplete="email" required />
           </label>
           <label>Senha
-            <input id="reg-password" type="password" required />
+            <input id="reg-password" type="password" autocomplete="new-password" required />
           </label>
           <label>Telefone
             <input id="reg-telefone" type="tel" required />
