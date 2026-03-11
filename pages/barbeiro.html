@@ -52,14 +52,24 @@
           <article class="card"><h3>Faturado no periodo</h3><div id="card-faturado-hoje" class="value">R$ 0,00</div></article>
           <article class="card"><h3>Comissao no periodo</h3><div id="card-comissao-hoje" class="value">R$ 0,00</div></article>
           <article class="card">
-            <h3>Proximos clientes</h3>
-            <div id="card-proximos-clientes" class="muted">Sem proximos clientes.</div>
+            <h3>Proximo cliente</h3>
+            <div id="card-proximos-clientes" class="muted">Sem proximo cliente.</div>
           </article>
         </section>
 
         <section class="card">
           <div class="rowBetween">
             <h3>Agenda do barbeiro</h3>
+            <div class="agenda-toolbar">
+              <div class="quick-filter-group" aria-label="Filtro rapido do painel do barbeiro">
+                <button type="button" class="quick-filter-btn active" data-barbeiro-quick-period="dia">Dia</button>
+                <button type="button" class="quick-filter-btn" data-barbeiro-quick-period="semana">Semana</button>
+                <button type="button" class="quick-filter-btn" data-barbeiro-quick-period="mes">Mes</button>
+              </div>
+              <button id="btn-toggle-filtro-barbeiro" type="button" class="btn-secondary">Filtro</button>
+            </div>
+          </div>
+          <div id="barbeiro-filtros-panel" class="agenda-filter-panel">
             <div class="form-row compact-filters">
               <label>Periodo
                 <select id="barbeiro-periodo">
@@ -76,6 +86,8 @@
               <label id="barbeiro-data-fim-wrap" hidden>Data final
                 <input id="agenda-data-fim-barbeiro" type="date" />
               </label>
+            </div>
+            <div class="section-actions">
               <button id="btn-aplicar-filtro-barbeiro" type="button" class="btn-primary">Aplicar filtro</button>
             </div>
           </div>

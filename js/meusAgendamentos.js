@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       return r.status === activeStatus;
     });
+    rows.sort((a, b) => new Date(`${b.data}T${b.hora_inicio}`) - new Date(`${a.data}T${a.hora_inicio}`));
 
     if (rows.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6">Sem agendamentos nesse status.</td></tr>';

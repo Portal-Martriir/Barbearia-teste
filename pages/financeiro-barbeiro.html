@@ -47,12 +47,6 @@
         <h1>Financeiro do Barbeiro</h1>
         <p id="barbeiro-fin-info" class="muted"></p>
 
-        <div class="auth-tab-wrap">
-          <button type="button" class="auth-tab-btn active" data-finbar-tab="resumo">Resumo financeiro</button>
-          <button type="button" class="auth-tab-btn" data-finbar-tab="ganhos">Ganhos</button>
-          <button type="button" class="auth-tab-btn" data-finbar-tab="contas">Contas a receber</button>
-        </div>
-
         <div class="auth-panel active" id="finbar-panel-resumo">
           <section class="grid">
             <article class="card"><h3>Receita (Bruto)</h3><div id="bf-receita-paga" class="value">R$ 0,00</div></article>
@@ -62,14 +56,29 @@
           </section>
 
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio
-                <input id="bf-data-inicio" type="date" />
-              </label>
-              <label>Data fim
-                <input id="bf-data-fim" type="date" />
-              </label>
-              <button id="bf-btn-filtrar" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro do resumo</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido do resumo financeiro do barbeiro">
+                  <button type="button" class="quick-filter-btn active" data-finbar-resumo-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-finbar-resumo-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-finbar-resumo-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-finbar-resumo-filtro" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="finbar-resumo-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio
+                  <input id="bf-data-inicio" type="date" />
+                </label>
+                <label>Data fim
+                  <input id="bf-data-fim" type="date" />
+                </label>
+              </div>
+              <div class="section-actions">
+                <button id="bf-btn-filtrar" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
         </div>
@@ -78,13 +87,25 @@
           <section class="card">
             <div class="rowBetween">
               <h3>Meus ganhos</h3>
-              <label>Periodo
-                <select id="ganhos-periodo">
-                  <option value="hoje">Hoje</option>
-                  <option value="semana">Semana</option>
-                  <option value="mes">Mes</option>
-                </select>
-              </label>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de ganhos">
+                  <button type="button" class="quick-filter-btn active" data-finbar-ganhos-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-finbar-ganhos-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-finbar-ganhos-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-finbar-ganhos-filtro" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="finbar-ganhos-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Periodo
+                  <select id="ganhos-periodo">
+                    <option value="hoje">Hoje</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes">Mes</option>
+                  </select>
+                </label>
+              </div>
             </div>
             <div class="grid">
               <article class="card"><h3>Total faturado</h3><div id="ganhos-faturado" class="value">R$ 0,00</div></article>

@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inicioWrap = document.getElementById('barbeiro-data-inicio-wrap');
   const fimWrap = document.getElementById('barbeiro-data-fim-wrap');
   const aplicarFiltroBtn = document.getElementById('btn-aplicar-filtro-barbeiro');
+  const toggleFiltroBtn = document.getElementById('btn-toggle-filtro-barbeiro');
+  const filtrosPanel = document.getElementById('barbeiro-filtros-panel');
+  const quickPeriodButtons = document.querySelectorAll('[data-barbeiro-quick-period]');
   const agendaBody = document.getElementById('lista-agenda-barbeiro');
 
   if (!periodoSelect || !agendaDataInicioInput || !agendaDataFimInput || !aplicarFiltroBtn || !agendaBody) {
@@ -28,7 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function toISO(date) {
-    return date.toISOString().slice(0, 10);
+    return window.AppUtils.dateToISO(date);
   }
 
   function showDateFilters() {
@@ -37,6 +40,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (inicioWrap) inicioWrap.hidden = !custom;
     if (fimWrap) fimWrap.hidden = !custom;
+  }
+
+  function setFilterPanelState(open) {
+    if (!filtrosPanel) return;
+    filtrosPanel.classList.toggle('is-open', open);
+  }
+
+  function syncQuickPeriodButtons() {
+    const selected = periodoSelect.value === 'hoje' ? 'dia' : periodoSelect.value;
+    quickPeriodButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.barbeiroQuickPeriod === selected);
+    });
   }
 
   function periodRange(periodo) {
@@ -116,8 +131,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       .eq('barbeiro_id', barbeiroId)
       .gte('data', inicioISO)
       .lte('data', fimISO)
-      .order('data', { ascending: true })
-      .order('hora_inicio', { ascending: true });
+      .order('data', { ascending: false })
+      .order('hora_inicio', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -146,25 +161,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     return motivo;
   }
 
-  async function loadResumoPeriodo(barbeiroId) {
-    if (!barbeiroId) {
-      document.getElementById('card-atendimentos-hoje').textContent = '0';
-      document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(0);
-      document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(0);
-      document.getElementById('card-proximos-clientes').textContent = 'Sem proximos clientes.';
-      return;
-    }
+  async function loadComissoesPeriodo(barbeiroId) {
+    if (!barbeiroId) return [];
 
-    const rows = await loadAgendamentosPeriodo(barbeiroId);
     const { inicioISO, fimISO } = periodRange(periodoSelect.value || 'hoje');
-
-    const { data: comRows, error: comError } = await window.sb
+    const { data, error } = await window.sb
       .from('comissoes')
       .select('valor_comissao, data')
       .eq('barbeiro_id', barbeiroId)
       .gte('data', inicioISO)
       .lte('data', fimISO);
-    if (comError) throw comError;
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function loadProximoCliente(barbeiroId) {
+    if (!barbeiroId) return null;
+
+    const agora = new Date();
+    const hoje = window.AppUtils.todayISO();
+    const horaAtual = `${window.AppUtils.pad2(agora.getHours())}:${window.AppUtils.pad2(agora.getMinutes())}:00`;
+
+    const { data, error } = await window.sb
+      .from('agendamentos')
+      .select(`
+        data,
+        hora_inicio,
+        clientes!agendamentos_cliente_id_fkey(nome, telefone)
+      `)
+      .eq('barbeiro_id', barbeiroId)
+      .in('status', ['agendado', 'em_atendimento'])
+      .or(`data.gt.${hoje},and(data.eq.${hoje},hora_inicio.gte.${horaAtual})`)
+      .order('data', { ascending: true })
+      .order('hora_inicio', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data || null;
+  }
+
+  function normalizePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('55')) return digits;
+    return `55${digits}`;
+  }
+
+  function whatsappLink(cliente) {
+    const phone = normalizePhone(cliente?.clientes?.telefone);
+    if (!phone) return '';
+    const nome = String(cliente?.clientes?.nome || 'cliente').trim();
+    const data = window.AppUtils.formatDate(cliente?.data);
+    const hora = String(cliente?.hora_inicio || '').slice(0, 5);
+    const mensagem = `Ola, ${nome}. Aqui e da DomLucasBarberShop. Confirma seu atendimento em ${data} as ${hora}?`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
+  }
+
+  function renderResumoPeriodo(rows, comRows, proximoCliente) {
+    if (!barbeiroId) {
+      document.getElementById('card-atendimentos-hoje').textContent = '0';
+      document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(0);
+      document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(0);
+      document.getElementById('card-proximos-clientes').textContent = 'Sem proximo cliente.';
+      return;
+    }
 
     const agora = new Date();
     const atendimentos = rows.filter((r) => !['cancelado', 'desistencia_cliente'].includes(r.status)).length;
@@ -173,26 +235,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       .reduce((acc, r) => acc + Number(r.valor || 0), 0);
     const comissao = (comRows || []).reduce((acc, r) => acc + Number(r.valor_comissao || 0), 0);
 
-    const proximos = rows
-      .filter((r) => r.status === 'agendado' || r.status === 'em_atendimento')
-      .filter((r) => new Date(`${r.data}T${r.hora_inicio}`) >= agora)
-      .slice(0, 4);
-
     document.getElementById('card-atendimentos-hoje').textContent = String(atendimentos);
     document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(faturado);
     document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(comissao);
-    document.getElementById('card-proximos-clientes').innerHTML = proximos.length === 0
-      ? 'Sem proximos clientes.'
-      : proximos.map((p) => `${window.AppUtils.formatDate(p.data)} ${String(p.hora_inicio).slice(0, 5)} - ${p.clientes?.nome || '-'}`).join('<br/>');
+    document.getElementById('card-proximos-clientes').innerHTML = !proximoCliente
+      ? 'Sem proximo cliente.'
+      : `
+        ${window.AppUtils.formatDate(proximoCliente.data)} ${String(proximoCliente.hora_inicio).slice(0, 5)} - ${proximoCliente.clientes?.nome || '-'}
+        ${whatsappLink(proximoCliente)
+          ? `<div class="section-space-top"><a class="btn-whatsapp" href="${window.AppUtils.escapeAttr(whatsappLink(proximoCliente))}" target="_blank" rel="noopener noreferrer">WhatsApp</a></div>`
+          : ''}
+      `;
   }
 
-  async function loadAgendaPeriodo(barbeiroId) {
+  function renderAgendaPeriodo(rows) {
     if (!barbeiroId) {
       agendaBody.innerHTML = '<tr><td colspan="8">Nenhum agendamento.</td></tr>';
       return;
     }
 
-    const rows = await loadAgendamentosPeriodo(barbeiroId);
     agendaBody.innerHTML = rows.length === 0
       ? '<tr><td colspan="8">Sem agendamentos para o periodo selecionado.</td></tr>'
       : rows.map((r) => `
@@ -263,10 +324,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function refreshAll(barbeiroId) {
-    await Promise.all([
-      loadResumoPeriodo(barbeiroId),
-      loadAgendaPeriodo(barbeiroId)
+    const [rows, comRows, proximoCliente] = await Promise.all([
+      loadAgendamentosPeriodo(barbeiroId),
+      loadComissoesPeriodo(barbeiroId),
+      loadProximoCliente(barbeiroId)
     ]);
+
+    renderResumoPeriodo(rows, comRows, proximoCliente);
+    renderAgendaPeriodo(rows);
   }
 
   let barbeiroId = null;
@@ -281,9 +346,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   periodoSelect.addEventListener('change', () => {
     showDateFilters();
+    syncQuickPeriodButtons();
+    if (periodoSelect.value === 'personalizado') {
+      setFilterPanelState(true);
+    }
   });
 
   aplicarFiltroBtn.addEventListener('click', applyFilters);
+
+  if (toggleFiltroBtn) {
+    toggleFiltroBtn.addEventListener('click', () => {
+      setFilterPanelState(!filtrosPanel?.classList.contains('is-open'));
+    });
+  }
+
+  quickPeriodButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const nextPeriod = button.dataset.barbeiroQuickPeriod === 'dia'
+        ? 'hoje'
+        : button.dataset.barbeiroQuickPeriod;
+
+      periodoSelect.value = nextPeriod;
+      showDateFilters();
+      syncQuickPeriodButtons();
+      setFilterPanelState(false);
+      await applyFilters();
+    });
+  });
 
   agendaBody.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-action][data-id]');
@@ -326,6 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   try {
     showDateFilters();
+    syncQuickPeriodButtons();
     barbeiroId = await getMeuBarbeiroId();
     await refreshAll(barbeiroId);
     if (!barbeiroId) {

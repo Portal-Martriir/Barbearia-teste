@@ -38,6 +38,159 @@ window.CommonUI = {
     });
   },
 
+  navHref(inPages, fileName) {
+    return inPages ? `./${fileName}` : `./pages/${fileName}`;
+  },
+
+  getNavSections(perfil, inPages) {
+    const href = (fileName) => this.navHref(inPages, fileName);
+
+    if (perfil === 'admin') {
+      return [
+        {
+          label: 'Inicio',
+          href: href('dashboard.html')
+        },
+        {
+          label: 'Cadastros',
+          children: [
+            { label: 'Usuarios', href: `${href('cadastro.html')}#usuarios` },
+            { label: 'Servicos', href: `${href('cadastro.html')}#servicos` },
+            { label: 'Despesas', href: `${href('cadastro.html')}#despesas` }
+          ]
+        },
+        {
+          label: 'Agenda',
+          href: href('agenda.html')
+        },
+        {
+          label: 'Configuracoes',
+          children: [
+            { label: 'Horarios', href: `${href('configuracoes.html')}#horarios` },
+            { label: 'Trocar senha', href: `${href('configuracoes.html')}#senhas` }
+          ]
+        },
+        {
+          label: 'Financeiro',
+          children: [
+            { label: 'Geral', href: `${href('financeiro.html')}#geral` },
+            { label: 'Receitas', href: `${href('financeiro.html')}#receitas` },
+            { label: 'Despesas', href: `${href('financeiro.html')}#despesas` },
+            { label: 'Contas a receber', href: `${href('financeiro.html')}#contas` },
+            { label: 'Repasse barbeiros', href: `${href('financeiro.html')}#repasse` },
+            { label: 'Liquido da empresa', href: `${href('financeiro.html')}#liquido` }
+          ]
+        },
+        {
+          label: 'Conta',
+          children: [
+            { label: 'Meus dados', href: href('meus-dados.html') }
+          ]
+        }
+      ];
+    }
+
+    if (perfil === 'barbeiro') {
+      return [
+        {
+          label: 'Inicio',
+          href: href('barbeiro.html')
+        },
+        {
+          label: 'Agenda',
+          children: [
+            { label: 'Agendamentos', href: `${href('agenda-barbeiro.html')}#agendamentos` },
+            { label: 'Registro', href: `${href('agenda-barbeiro.html')}#registro` },
+            { label: 'Lancamento manual', href: `${href('agenda-barbeiro.html')}#manual` }
+          ]
+        },
+        {
+          label: 'Financeiro',
+          children: [
+            { label: 'Resumo financeiro', href: `${href('financeiro-barbeiro.html')}#resumo` },
+            { label: 'Ganhos', href: `${href('financeiro-barbeiro.html')}#ganhos` },
+            { label: 'Contas a receber', href: `${href('financeiro-barbeiro.html')}#contas` }
+          ]
+        },
+        {
+          label: 'Configuracoes',
+          children: [
+            { label: 'Meus horarios', href: href('configuracoes-barbeiro.html') },
+            { label: 'Meus dados', href: href('meus-dados.html') }
+          ]
+        }
+      ];
+    }
+
+    return [
+      {
+        label: 'Inicio',
+        href: href('cliente.html')
+      },
+      {
+        label: 'Agenda',
+        children: [
+          { label: 'Agendar novo horario', href: href('cliente-agendamento.html') },
+          { label: 'Meus agendamentos', href: href('meus-agendamentos.html') }
+        ]
+      },
+      {
+        label: 'Conta',
+        children: [
+          { label: 'Meus dados', href: href('meus-dados.html') }
+        ]
+      }
+    ];
+  },
+
+  buildNavigation(safeUser) {
+    const inPages = window.location.pathname.includes('/pages/');
+    const currentPath = window.location.pathname.split('/').pop() || '';
+    const currentHash = window.location.hash || '';
+    const currentPathWithHash = `${currentPath}${currentHash}`;
+    const sections = this.getNavSections(safeUser.perfil, inPages);
+    const navContainers = document.querySelectorAll('.nav');
+
+      navContainers.forEach((nav) => {
+      nav.innerHTML = sections.map((section, sectionIndex) => {
+        if (section.href) {
+          const target = section.href.split('/').pop() || '';
+          const activeClass = target === currentPathWithHash || (currentHash === '' && target === currentPath) ? 'active' : '';
+          return `
+            <div class="nav-section nav-section-link">
+              <a class="nav-parent nav-link-direct ${activeClass}" href="${section.href}">
+                <span>${window.AppUtils.escapeHtml(section.label)}</span>
+              </a>
+            </div>
+          `;
+        }
+
+        const hasActiveChild = section.children.some((item) => {
+          const target = item.href.split('/').pop() || '';
+          return target === currentPathWithHash || (currentHash === '' && target === currentPath);
+        });
+        const shouldOpen = hasActiveChild || sectionIndex === 0;
+        const childrenHtml = section.children.map((item) => {
+          const target = item.href.split('/').pop() || '';
+          const activeClass = target === currentPathWithHash || (currentHash === '' && target === currentPath) ? 'active' : '';
+          return `<a class="${activeClass}" href="${item.href}">${window.AppUtils.escapeHtml(item.label)}</a>`;
+        }).join('');
+
+        return `
+          <div class="nav-section ${shouldOpen ? 'open' : ''}">
+            <button type="button" class="nav-parent" aria-expanded="${shouldOpen ? 'true' : 'false'}">
+              <span>${window.AppUtils.escapeHtml(section.label)}</span>
+              <span class="nav-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="nav-children">
+              ${childrenHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    });
+  },
+
   async setupLayout(userInfo) {
     const safeUser = {
       nome: userInfo?.nome || 'Usuario',
@@ -72,19 +225,6 @@ window.CommonUI = {
       el.style.setProperty('display', 'none', 'important');
     };
 
-    const inPages = window.location.pathname.includes('/pages/');
-    const meusDadosHref = inPages ? './meus-dados.html' : './pages/meus-dados.html';
-    const navContainers = document.querySelectorAll('.nav');
-    navContainers.forEach((nav) => {
-      const exists = nav.querySelector(`a[href="${meusDadosHref}"]`) || nav.querySelector('a[href$="meus-dados.html"]');
-      if (exists) return;
-      const link = document.createElement('a');
-      link.href = meusDadosHref;
-      link.textContent = 'Meus dados';
-      link.setAttribute('data-all-profiles', 'true');
-      nav.appendChild(link);
-    });
-
     const adminOnly = document.querySelectorAll('[data-admin-only]');
     adminOnly.forEach((el) => {
       if (safeUser.perfil === 'admin') {
@@ -112,13 +252,6 @@ window.CommonUI = {
       }
     });
 
-    if (safeUser.perfil === 'barbeiro') {
-      const barberNavFallback = document.querySelectorAll('.nav a:not([data-admin-only]):not([data-client-only])');
-      barberNavFallback.forEach((el) => showRoleElement(el));
-    }
-
-    const path = window.location.pathname.split('/').pop();
-    const navLinks = document.querySelectorAll('.nav a[href]');
     const menuToggle = document.getElementById('btn-menu-toggle');
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -131,11 +264,35 @@ window.CommonUI = {
     const closeSidebar = () => setSidebarState(false);
     const toggleSidebar = () => setSidebarState(!document.body.classList.contains('sidebar-open'));
 
-    navLinks.forEach((link) => {
-      const href = link.getAttribute('href') || '';
-      if (href.endsWith(path)) link.classList.add('active');
-      link.addEventListener('click', closeSidebar);
-    });
+    const bindNavigation = () => {
+      this.buildNavigation(safeUser);
+
+      const navParents = document.querySelectorAll('.nav-section button.nav-parent');
+      navParents.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const section = btn.closest('.nav-section');
+          if (!section) return;
+          const willOpen = !section.classList.contains('open');
+
+          document.querySelectorAll('.nav-section.open').forEach((openSection) => {
+            if (openSection === section) return;
+            openSection.classList.remove('open');
+            const openButton = openSection.querySelector('button.nav-parent');
+            if (openButton) {
+              openButton.setAttribute('aria-expanded', 'false');
+            }
+          });
+
+          section.classList.toggle('open', willOpen);
+          btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        });
+      });
+
+      const navLinks = document.querySelectorAll('.nav a[href]');
+      navLinks.forEach((link) => link.addEventListener('click', closeSidebar));
+    };
+
+    bindNavigation();
 
     if (menuToggle) {
       menuToggle.addEventListener('click', (ev) => {
@@ -158,6 +315,8 @@ window.CommonUI = {
         closeSidebar();
       }
     });
+
+    window.addEventListener('hashchange', () => bindNavigation());
 
     setSidebarState(false);
     this.enhanceResponsiveTables(document);

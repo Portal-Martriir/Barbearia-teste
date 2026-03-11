@@ -12,14 +12,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bfQtdPagos = document.getElementById('bf-qtd-pagos');
   const bfDataInicio = document.getElementById('bf-data-inicio');
   const bfDataFim = document.getElementById('bf-data-fim');
+  const bfToggleFiltro = document.getElementById('btn-toggle-finbar-resumo-filtro');
+  const bfFiltrosPanel = document.getElementById('finbar-resumo-filtros-panel');
+  const bfQuickButtons = document.querySelectorAll('[data-finbar-resumo-quick-period]');
   const bfServicosPagos = document.getElementById('bf-servicos-pagos');
   const bfContasReceberBody = document.getElementById('bf-contas-receber-body');
   const ganhosPeriodo = document.getElementById('ganhos-periodo');
+  const ganhosToggleFiltro = document.getElementById('btn-toggle-finbar-ganhos-filtro');
+  const ganhosFiltrosPanel = document.getElementById('finbar-ganhos-filtros-panel');
+  const ganhosQuickButtons = document.querySelectorAll('[data-finbar-ganhos-quick-period]');
   const ganhosExtratoBody = document.getElementById('ganhos-extrato-body');
   const tabButtons = document.querySelectorAll('[data-finbar-tab]');
   const panelResumo = document.getElementById('finbar-panel-resumo');
   const panelGanhos = document.getElementById('finbar-panel-ganhos');
   const panelContas = document.getElementById('finbar-panel-contas');
+  const loadedTabs = new Set();
 
   function setTab(tab) {
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.finbarTab === tab));
@@ -28,7 +35,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     panelContas.classList.toggle('active', tab === 'contas');
   }
 
-  tabButtons.forEach((btn) => btn.addEventListener('click', () => setTab(btn.dataset.finbarTab)));
+  function currentHashTab() {
+    const tab = window.location.hash.replace('#', '').trim();
+    return ['resumo', 'ganhos', 'contas'].includes(tab) ? tab : 'resumo';
+  }
+
+  async function applyHashTab(force = false) {
+    const tab = currentHashTab();
+    setTab(tab);
+    await ensureTabLoaded(tab, barbeiroId, force);
+  }
+
+  async function ensureTabLoaded(tab, currentBarbeiroId, force = false) {
+    if (!currentBarbeiroId) return;
+    if (!force && loadedTabs.has(tab)) return;
+
+    if (tab === 'ganhos') {
+      await loadGanhos(currentBarbeiroId);
+    } else {
+      await loadFinanceiroBarbeiro(currentBarbeiroId);
+    }
+
+    loadedTabs.add(tab);
+  }
+
+  tabButtons.forEach((btn) => btn.addEventListener('click', async () => {
+    window.location.hash = btn.dataset.finbarTab;
+    try {
+      await applyHashTab();
+    } catch (err) {
+      window.AppUtils.notify(info, err.message, true);
+    }
+  }));
 
   async function getMeuBarbeiroId() {
     const { data, error } = await window.sb
@@ -117,9 +155,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     return {
-      inicio: inicio.toISOString().slice(0, 10),
-      fim: fim.toISOString().slice(0, 10)
+      inicio: window.AppUtils.dateToISO(inicio),
+      fim: window.AppUtils.dateToISO(fim)
     };
+  }
+
+  function setPanelState(panel, open) {
+    if (!panel) return;
+    panel.classList.toggle('is-open', open);
+  }
+
+  function syncResumoQuickButtons() {
+    const today = window.AppUtils.todayISO();
+    const monthStart = `${today.slice(0, 8)}01`;
+    let selected = '';
+
+    if (bfDataInicio.value === today && bfDataFim.value === today) {
+      selected = 'dia';
+    } else if (bfDataInicio.value === monthStart && bfDataFim.value === today) {
+      selected = 'mes';
+    } else {
+      const weekRange = periodRange('semana');
+      if (bfDataInicio.value === weekRange.inicio && bfDataFim.value === weekRange.fim) {
+        selected = 'semana';
+      }
+    }
+
+    bfQuickButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.finbarResumoQuickPeriod === selected);
+    });
+  }
+
+  function syncGanhosQuickButtons() {
+    const selected = ganhosPeriodo.value === 'hoje' ? 'dia' : ganhosPeriodo.value;
+    ganhosQuickButtons.forEach((button) => {
+      button.classList.toggle('active', button.dataset.finbarGanhosQuickPeriod === selected);
+    });
   }
 
   async function loadGanhos(barbeiroId) {
@@ -187,7 +258,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   ganhosPeriodo.addEventListener('change', async () => {
     try {
-      await loadGanhos(barbeiroId);
+      syncGanhosQuickButtons();
+      await ensureTabLoaded('ganhos', barbeiroId, true);
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
@@ -195,11 +267,56 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('bf-btn-filtrar').addEventListener('click', async () => {
     try {
-      await loadFinanceiroBarbeiro(barbeiroId);
+      syncResumoQuickButtons();
+      await ensureTabLoaded('resumo', barbeiroId, true);
       window.AppUtils.notify(info, 'Financeiro atualizado.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
+  });
+
+  if (bfToggleFiltro) {
+    bfToggleFiltro.addEventListener('click', () => {
+      setPanelState(bfFiltrosPanel, !bfFiltrosPanel?.classList.contains('is-open'));
+    });
+  }
+
+  if (ganhosToggleFiltro) {
+    ganhosToggleFiltro.addEventListener('click', () => {
+      setPanelState(ganhosFiltrosPanel, !ganhosFiltrosPanel?.classList.contains('is-open'));
+    });
+  }
+
+  bfQuickButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const range = periodRange(button.dataset.finbarResumoQuickPeriod);
+      bfDataInicio.value = range.inicio;
+      bfDataFim.value = range.fim;
+      syncResumoQuickButtons();
+      setPanelState(bfFiltrosPanel, false);
+
+      try {
+        await ensureTabLoaded('resumo', barbeiroId, true);
+      } catch (err) {
+        window.AppUtils.notify(info, err.message, true);
+      }
+    });
+  });
+
+  ganhosQuickButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      ganhosPeriodo.value = button.dataset.finbarGanhosQuickPeriod === 'dia'
+        ? 'hoje'
+        : button.dataset.finbarGanhosQuickPeriod;
+      syncGanhosQuickButtons();
+      setPanelState(ganhosFiltrosPanel, false);
+
+      try {
+        await ensureTabLoaded('ganhos', barbeiroId, true);
+      } catch (err) {
+        window.AppUtils.notify(info, err.message, true);
+      }
+    });
   });
 
   bfServicosPagos.addEventListener('click', async (ev) => {
@@ -226,7 +343,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (agError) throw agError;
       }
 
-      await loadFinanceiroBarbeiro(barbeiroId);
+      loadedTabs.delete('resumo');
+      loadedTabs.delete('contas');
+      await ensureTabLoaded('resumo', barbeiroId, true);
       window.AppUtils.notify(info, 'Servico lancado em contas a receber.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -257,21 +376,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (agError) throw agError;
       }
 
-      await loadFinanceiroBarbeiro(barbeiroId);
+      loadedTabs.delete('resumo');
+      loadedTabs.delete('contas');
+      await ensureTabLoaded('resumo', barbeiroId, true);
       window.AppUtils.notify(info, 'Conta marcada como recebida.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
   });
 
+  window.addEventListener('hashchange', () => {
+    applyHashTab().catch((err) => window.AppUtils.notify(info, err.message, true));
+  });
+
   try {
     barbeiroId = await getMeuBarbeiroId();
     const hoje = window.AppUtils.todayISO();
-    bfDataInicio.value = hoje.slice(0, 8) + '01';
+    bfDataInicio.value = hoje;
     bfDataFim.value = hoje;
-    await loadGanhos(barbeiroId);
-    await loadFinanceiroBarbeiro(barbeiroId);
-    setTab('resumo');
+    syncResumoQuickButtons();
+    syncGanhosQuickButtons();
+    if (!window.location.hash) {
+      window.location.hash = 'resumo';
+    }
+    await applyHashTab(true);
     if (!barbeiroId) {
       window.AppUtils.notify(info, 'Nao foi possivel localizar barbeiro para este usuario.', true);
     }

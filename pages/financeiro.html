@@ -43,15 +43,6 @@
         <h1>Financeiro (Admin)</h1>
         <p id="financeiro-info" class="muted"></p>
 
-        <div class="auth-tab-wrap">
-          <button type="button" class="auth-tab-btn active" data-financeiro-tab="geral">Geral</button>
-          <button type="button" class="auth-tab-btn" data-financeiro-tab="receitas">Receitas</button>
-          <button type="button" class="auth-tab-btn" data-financeiro-tab="despesas">Despesas</button>
-          <button type="button" class="auth-tab-btn" data-financeiro-tab="contas">Contas a receber</button>
-          <button type="button" class="auth-tab-btn" data-financeiro-tab="repasse">Repasse barbeiros</button>
-          <button type="button" class="auth-tab-btn" data-financeiro-tab="liquido">Liquido da empresa</button>
-        </div>
-
         <div class="auth-panel active" id="financeiro-panel-geral">
           <section class="card">
             <h3>Visao geral da barbearia</h3>
@@ -59,12 +50,27 @@
           </section>
 
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio<input id="f-data-inicio" type="date" /></label>
-              <label>Data fim<input id="f-data-fim" type="date" /></label>
-              <label>Barbeiro<select id="f-barbeiro"></select></label>
-              <label>Servico (nome)<input id="f-servico" placeholder="Ex: corte" /></label>
-              <button id="btn-filtrar-financeiro" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro da visao geral</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido da visao geral">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-geral" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-geral-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="f-data-inicio" type="date" /></label>
+                <label>Data fim<input id="f-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="f-barbeiro"></select></label>
+                <label>Servico (nome)<input id="f-servico" placeholder="Ex: corte" /></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-financeiro" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
 
@@ -98,11 +104,26 @@
 
         <div class="auth-panel" id="financeiro-panel-receitas">
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio<input id="rs-data-inicio" type="date" /></label>
-              <label>Data fim<input id="rs-data-fim" type="date" /></label>
-              <label>Barbeiro<select id="rs-barbeiro"></select></label>
-              <button id="btn-filtrar-receitas-servicos" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro de receitas</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de receitas">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-receitas" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-receitas-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="rs-data-inicio" type="date" /></label>
+                <label>Data fim<input id="rs-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="rs-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-receitas-servicos" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
 
@@ -154,11 +175,26 @@
           </section>
 
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio<input id="d-data-inicio" type="date" /></label>
-              <label>Data fim<input id="d-data-fim" type="date" /></label>
-              <label>Categoria<select id="d-categoria"></select></label>
-              <button id="btn-filtrar-despesas" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro de despesas</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de despesas">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-despesas" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-despesas-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="d-data-inicio" type="date" /></label>
+                <label>Data fim<input id="d-data-fim" type="date" /></label>
+                <label>Categoria<select id="d-categoria"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-despesas" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
 
@@ -256,11 +292,26 @@
           </section>
 
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio<input id="rp-data-inicio" type="date" /></label>
-              <label>Data fim<input id="rp-data-fim" type="date" /></label>
-              <label>Barbeiro<select id="rp-barbeiro"></select></label>
-              <button id="btn-filtrar-repasse" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro de repasse</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de repasse">
+                  <button type="button" class="quick-filter-btn active" data-financeiro-quick-target="repasse" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="repasse" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="repasse" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-repasse" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-repasse-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="rp-data-inicio" type="date" /></label>
+                <label>Data fim<input id="rp-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="rp-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-repasse" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
 
@@ -293,11 +344,26 @@
           </section>
 
           <section class="card">
-            <div class="form-row">
-              <label>Data inicio<input id="lq-data-inicio" type="date" /></label>
-              <label>Data fim<input id="lq-data-fim" type="date" /></label>
-              <label>Barbeiro<select id="lq-barbeiro"></select></label>
-              <button id="btn-filtrar-liquido" type="button" class="btn-secondary">Aplicar filtros</button>
+            <div class="rowBetween">
+              <h3>Filtro do liquido</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido do liquido da empresa">
+                  <button type="button" class="quick-filter-btn active" data-financeiro-quick-target="liquido" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="liquido" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="liquido" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-liquido" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-liquido-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="lq-data-inicio" type="date" /></label>
+                <label>Data fim<input id="lq-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="lq-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-liquido" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
             </div>
           </section>
 

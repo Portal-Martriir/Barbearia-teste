@@ -1,4 +1,4 @@
-﻿-- =========================================================
+-- =========================================================
 -- BARBEARIA APP - SUPABASE SQL COMPLETO
 -- =========================================================
 
@@ -22,7 +22,10 @@ drop function if exists public.obter_configuracao_agenda_publica() cascade;
 drop function if exists public.definir_usuario_como_barbeiro(uuid, text, text, numeric) cascade;
 drop function if exists public.registrar_cliente_auth(text, text, text) cascade;
 drop function if exists public.admin_atualizar_usuario_cadastro(uuid, text, text, text, date) cascade;
+drop function if exists public.admin_definir_senha_usuario(uuid, text) cascade;
 drop function if exists public.garantir_admin_como_barbeiro() cascade;
+drop function if exists public.listar_usuarios_cadastro_admin() cascade;
+drop function if exists public.dashboard_admin_resumo(date, date) cascade;
 
 drop table if exists public.financeiro cascade;
 drop table if exists public.loja_dias_fechados cascade;
@@ -224,13 +227,19 @@ create table public.comissoes (
 
 create index idx_agendamentos_data on public.agendamentos(data);
 create index idx_agendamentos_barbeiro_data on public.agendamentos(barbeiro_id, data);
+create index idx_agendamentos_barbeiro_data_hora_ativos on public.agendamentos(barbeiro_id, data, hora_inicio, hora_fim) where status <> 'cancelado';
+create index idx_agendamentos_cliente_data on public.agendamentos(cliente_id, data);
+create index idx_agendamentos_status_data on public.agendamentos(status, data);
 create index idx_financeiro_data on public.financeiro(data);
 create index idx_financeiro_barbeiro on public.financeiro(barbeiro_id);
+create index idx_financeiro_status_data on public.financeiro(status_pagamento, data);
+create index idx_financeiro_barbeiro_status_data on public.financeiro(barbeiro_id, status_pagamento, data);
 create index idx_receitas_manuais_data on public.receitas_manuais(data);
 create index idx_contas_receber_manuais_data on public.contas_receber_manuais(data);
 create index idx_contas_receber_manuais_status on public.contas_receber_manuais(status);
 create index idx_loja_horarios_data_data on public.loja_horarios_data(data);
 create index idx_despesas_data on public.despesas(data);
+create index idx_despesas_categoria_data on public.despesas(categoria, data);
 create index idx_comissoes_barbeiro_data on public.comissoes(barbeiro_id, data);
 create index idx_barbeiro_horarios_barbeiro on public.barbeiro_horarios(barbeiro_id, dia_semana);
 
@@ -1144,6 +1153,208 @@ begin
 end;
 $$;
 
+create or replace function public.admin_definir_senha_usuario(
+  p_usuario_id uuid,
+  p_nova_senha text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, auth, extensions
+as $$
+declare
+  v_is_admin boolean;
+  v_senha text;
+begin
+  select public.fn_is_admin() into v_is_admin;
+  if not v_is_admin then
+    raise exception 'Apenas admin pode alterar senhas';
+  end if;
+
+  v_senha := coalesce(p_nova_senha, '');
+  if length(v_senha) < 6 then
+    raise exception 'A senha deve ter no minimo 6 caracteres';
+  end if;
+
+  if not exists (
+    select 1
+    from public.usuarios u
+    where u.id = p_usuario_id
+  ) then
+    raise exception 'Usuario nao encontrado';
+  end if;
+
+  update auth.users
+  set encrypted_password = extensions.crypt(v_senha, extensions.gen_salt('bf')),
+      updated_at = now()
+  where id = p_usuario_id;
+
+  if not found then
+    raise exception 'Usuario de autenticacao nao encontrado';
+  end if;
+
+  return true;
+end;
+$$;
+
+create or replace function public.listar_usuarios_cadastro_admin()
+returns table (
+  id uuid,
+  nome text,
+  email text,
+  telefone text,
+  data_nascimento date,
+  perfil text,
+  ativo boolean,
+  comissao_percentual numeric
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.fn_is_admin() then
+    raise exception 'Apenas admin pode listar usuarios';
+  end if;
+
+  return query
+  select
+    u.id,
+    u.nome,
+    u.email,
+    u.telefone,
+    u.data_nascimento,
+    u.perfil,
+    u.ativo,
+    b.comissao_percentual
+  from public.usuarios u
+  left join public.barbeiros b on b.usuario_id = u.id
+  order by u.created_at desc;
+end;
+$$;
+
+create or replace function public.dashboard_admin_resumo(
+  p_inicio date,
+  p_fim date
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_result jsonb;
+begin
+  if not public.fn_is_admin() then
+    raise exception 'Apenas admin pode acessar o dashboard';
+  end if;
+
+  with ag as (
+    select a.data, a.status
+    from public.agendamentos a
+    where a.data >= p_inicio
+      and a.data <= p_fim
+  ),
+  fin as (
+    select
+      f.data,
+      f.valor_servico,
+      f.comissao_barbeiro,
+      f.status_pagamento,
+      coalesce(b.nome, 'Sem nome') as barbeiro
+    from public.financeiro f
+    left join public.barbeiros b on b.id = f.barbeiro_id
+    where f.data >= p_inicio
+      and f.data <= p_fim
+  ),
+  desp as (
+    select d.data, d.valor
+    from public.despesas d
+    where d.data >= p_inicio
+      and d.data <= p_fim
+  ),
+  contas as (
+    select coalesce(sum(c.valor), 0) as total
+    from public.contas_receber_manuais c
+    where c.status = 'pendente'
+      and c.data >= p_inicio
+      and c.data <= p_fim
+  ),
+  datas as (
+    select data from ag
+    union
+    select data from fin
+    union
+    select data from desp
+  ),
+  fin_por_data as (
+    select
+      f.data,
+      sum(case when f.status_pagamento = 'pago' then f.valor_servico else 0 end) as receita,
+      sum(case when f.status_pagamento = 'pago' then f.comissao_barbeiro else 0 end) as comissao
+    from fin f
+    group by f.data
+  ),
+  ranking as (
+    select
+      f.barbeiro as nome,
+      sum(f.valor_servico) as total
+    from fin f
+    where f.status_pagamento = 'pago'
+    group by f.barbeiro
+    order by total desc
+    limit 6
+  )
+  select jsonb_build_object(
+    'totalFaturado', coalesce((select sum(f.valor_servico) from fin f where f.status_pagamento = 'pago'), 0),
+    'atendimentos', coalesce((select count(*) from ag where status = 'concluido'), 0),
+    'agendamentos', coalesce((select count(*) from ag), 0),
+    'topBarbeiro', coalesce(
+      (
+        select jsonb_build_object('nome', r.nome, 'total', r.total)
+        from ranking r
+        limit 1
+      ),
+      'null'::jsonb
+    ),
+    'contasReceber', coalesce((select sum(f.valor_servico) from fin f where f.status_pagamento = 'pendente'), 0)
+      + coalesce((select total from contas), 0),
+    'despesas', coalesce((select sum(d.valor) from desp d), 0),
+    'comissoes', coalesce((select sum(f.comissao_barbeiro) from fin f where f.status_pagamento = 'pago'), 0),
+    'liquido', coalesce((select sum(f.valor_servico - f.comissao_barbeiro) from fin f where f.status_pagamento = 'pago'), 0),
+    'series', coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object(
+            'data', ds.data,
+            'receita', coalesce(fd.receita, 0),
+            'comissao', coalesce(fd.comissao, 0),
+            'liquido', coalesce(fd.receita, 0) - coalesce(fd.comissao, 0)
+          )
+          order by ds.data
+        )
+        from datas ds
+        left join fin_por_data fd on fd.data = ds.data
+      ),
+      '[]'::jsonb
+    ),
+    'ranking', coalesce(
+      (
+        select jsonb_agg(
+          jsonb_build_object('nome', r.nome, 'total', r.total)
+          order by r.total desc
+        )
+        from ranking r
+      ),
+      '[]'::jsonb
+    )
+  )
+  into v_result;
+
+  return coalesce(v_result, '{}'::jsonb);
+end;
+$$;
+
 create or replace function public.garantir_admin_como_barbeiro()
 returns uuid
 language plpgsql
@@ -1448,5 +1659,380 @@ grant execute on function public.cancelar_agendamento_cliente(uuid) to authentic
 grant execute on function public.definir_usuario_como_barbeiro(uuid, text, text, numeric) to authenticated;
 grant execute on function public.definir_usuario_como_cliente(uuid) to authenticated;
 grant execute on function public.admin_atualizar_usuario_cadastro(uuid, text, text, text, date) to authenticated;
+grant execute on function public.admin_definir_senha_usuario(uuid, text) to authenticated;
 grant execute on function public.garantir_admin_como_barbeiro() to authenticated;
 grant execute on function public.obter_configuracao_agenda_publica() to anon, authenticated;
+grant execute on function public.listar_usuarios_cadastro_admin() to authenticated;
+grant execute on function public.dashboard_admin_resumo(date, date) to authenticated;
+
+
+-- =========================================================
+-- CORRECOES CONSOLIDADAS
+-- =========================================================
+create or replace function public.horarios_disponiveis_cliente(
+  p_data date,
+  p_barbeiro_id uuid,
+  p_servico_id uuid
+)
+returns table (
+  hora_inicio time
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_abertura time;
+  v_fechamento time;
+  v_intervalo integer;
+  v_passo interval;
+  v_duracao integer;
+  v_cursor time;
+  v_dow integer;
+  v_h_ativo boolean;
+  v_h_inicio time;
+  v_h_intervalo_inicio time;
+  v_h_intervalo_fim time;
+  v_h_fim time;
+  v_h_intervalo integer;
+begin
+  if p_data is null then
+    raise exception 'Data obrigatoria';
+  end if;
+  if p_barbeiro_id is null then
+    raise exception 'Barbeiro obrigatorio';
+  end if;
+  if p_servico_id is null then
+    raise exception 'Servico obrigatorio';
+  end if;
+
+  v_dow := extract(dow from p_data)::integer;
+
+  select h.ativo, h.hora_inicio, h.hora_intervalo_inicio, h.hora_intervalo_fim, h.hora_fim, h.intervalo_minutos
+  into v_h_ativo, v_h_inicio, v_h_intervalo_inicio, v_h_intervalo_fim, v_h_fim, v_h_intervalo
+  from public.barbeiro_horarios h
+  where h.barbeiro_id = p_barbeiro_id
+    and h.dia_semana = v_dow
+  limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  if not coalesce(v_h_ativo, false) then
+    return;
+  end if;
+
+  v_abertura := coalesce(v_h_inicio, '09:00'::time);
+  v_fechamento := coalesce(v_h_fim, '19:00'::time);
+  v_intervalo := coalesce(v_h_intervalo, 30);
+  v_passo := make_interval(mins => v_intervalo);
+
+  if v_abertura >= v_fechamento then
+    return;
+  end if;
+
+  select s.duracao_minutos
+  into v_duracao
+  from public.servicos s
+  where s.id = p_servico_id;
+
+  if v_duracao is null then
+    raise exception 'Servico invalido';
+  end if;
+
+  v_cursor := v_abertura;
+  while (v_cursor + make_interval(mins => v_duracao)) <= v_fechamento loop
+    if (
+      v_h_intervalo_inicio is not null
+      and v_h_intervalo_fim is not null
+      and v_cursor < v_h_intervalo_fim
+      and (v_cursor + make_interval(mins => v_duracao))::time > v_h_intervalo_inicio
+    ) then
+      v_cursor := greatest((v_cursor + v_passo)::time, v_h_intervalo_fim);
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from public.agendamentos a
+      where a.barbeiro_id = p_barbeiro_id
+        and a.data = p_data
+        and a.status not in ('cancelado', 'desistencia_cliente')
+        and (v_cursor < a.hora_fim and (v_cursor + make_interval(mins => v_duracao))::time > a.hora_inicio)
+    ) then
+      if (p_data > current_date) or (p_data = current_date and v_cursor > localtime) then
+        hora_inicio := v_cursor;
+        return next;
+      end if;
+    end if;
+
+    v_cursor := (v_cursor + v_passo)::time;
+  end loop;
+end;
+$$;
+
+create or replace function public.before_write_agendamento()
+returns trigger
+language plpgsql
+as $$
+declare
+  v_duracao integer;
+  v_preco numeric(12,2);
+  v_abertura time;
+  v_fechamento time;
+  v_dow integer;
+  v_h_ativo boolean;
+  v_h_inicio time;
+  v_h_intervalo_inicio time;
+  v_h_intervalo_fim time;
+  v_h_fim time;
+begin
+  select s.duracao_minutos, s.preco
+  into v_duracao, v_preco
+  from public.servicos s
+  where s.id = new.servico_id;
+
+  if v_duracao is null then
+    raise exception 'Servico invalido para este agendamento';
+  end if;
+
+  new.hora_fim := (new.hora_inicio + make_interval(mins => v_duracao))::time;
+  new.valor := v_preco;
+
+  v_dow := extract(dow from new.data)::integer;
+
+  select h.ativo, h.hora_inicio, h.hora_intervalo_inicio, h.hora_intervalo_fim, h.hora_fim
+  into v_h_ativo, v_h_inicio, v_h_intervalo_inicio, v_h_intervalo_fim, v_h_fim
+  from public.barbeiro_horarios h
+  where h.barbeiro_id = new.barbeiro_id
+    and h.dia_semana = v_dow
+  limit 1;
+
+  if not found then
+    raise exception 'O barbeiro nao possui horario configurado para este dia';
+  end if;
+
+  if not coalesce(v_h_ativo, false) then
+    raise exception 'O barbeiro nao atende neste dia';
+  end if;
+
+  v_abertura := coalesce(v_h_inicio, '09:00'::time);
+  v_fechamento := coalesce(v_h_fim, '19:00'::time);
+
+  if v_abertura >= v_fechamento then
+    raise exception 'Horario de atendimento invalido para este barbeiro/dia';
+  end if;
+
+  if new.hora_inicio < v_abertura or new.hora_fim > v_fechamento then
+    raise exception 'Agendamento fora do horario permitido (% - %)', v_abertura, v_fechamento;
+  end if;
+
+  if (
+    v_h_intervalo_inicio is not null
+    and v_h_intervalo_fim is not null
+    and new.hora_inicio < v_h_intervalo_fim
+    and new.hora_fim > v_h_intervalo_inicio
+  ) then
+    raise exception 'Agendamento em conflito com o intervalo do barbeiro (% - %)', v_h_intervalo_inicio, v_h_intervalo_fim;
+  end if;
+
+  if exists (
+    select 1
+    from public.agendamentos a
+    where a.barbeiro_id = new.barbeiro_id
+      and a.data = new.data
+      and a.status not in ('cancelado', 'desistencia_cliente')
+      and a.id <> coalesce(new.id, '00000000-0000-0000-0000-000000000000'::uuid)
+      and (new.hora_inicio < a.hora_fim and new.hora_fim > a.hora_inicio)
+  ) then
+    raise exception 'Conflito de horario para este barbeiro';
+  end if;
+
+  return new;
+end;
+$$;
+
+
+create or replace function public.horarios_disponiveis_cliente(
+  p_data date,
+  p_barbeiro_id uuid,
+  p_servico_id uuid
+)
+returns table (
+  hora_inicio time
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_abertura time;
+  v_fechamento time;
+  v_intervalo integer;
+  v_passo interval;
+  v_duracao integer;
+  v_cursor time;
+  v_dow integer;
+  v_h_ativo boolean;
+  v_h_inicio time;
+  v_h_intervalo_inicio time;
+  v_h_intervalo_fim time;
+  v_h_fim time;
+  v_h_intervalo integer;
+  v_now_sp timestamptz;
+  v_today_sp date;
+  v_time_sp time;
+begin
+  if p_data is null then
+    raise exception 'Data obrigatoria';
+  end if;
+  if p_barbeiro_id is null then
+    raise exception 'Barbeiro obrigatorio';
+  end if;
+  if p_servico_id is null then
+    raise exception 'Servico obrigatorio';
+  end if;
+
+  v_now_sp := now() at time zone 'America/Sao_Paulo';
+  v_today_sp := v_now_sp::date;
+  v_time_sp := v_now_sp::time;
+
+  v_dow := extract(dow from p_data)::integer;
+
+  select h.ativo, h.hora_inicio, h.hora_intervalo_inicio, h.hora_intervalo_fim, h.hora_fim, h.intervalo_minutos
+  into v_h_ativo, v_h_inicio, v_h_intervalo_inicio, v_h_intervalo_fim, v_h_fim, v_h_intervalo
+  from public.barbeiro_horarios h
+  where h.barbeiro_id = p_barbeiro_id
+    and h.dia_semana = v_dow
+  limit 1;
+
+  if not found then
+    return;
+  end if;
+
+  if not coalesce(v_h_ativo, false) then
+    return;
+  end if;
+
+  v_abertura := coalesce(v_h_inicio, '09:00'::time);
+  v_fechamento := coalesce(v_h_fim, '19:00'::time);
+  v_intervalo := coalesce(v_h_intervalo, 30);
+  v_passo := make_interval(mins => v_intervalo);
+
+  if v_abertura >= v_fechamento then
+    return;
+  end if;
+
+  select s.duracao_minutos
+  into v_duracao
+  from public.servicos s
+  where s.id = p_servico_id;
+
+  if v_duracao is null then
+    raise exception 'Servico invalido';
+  end if;
+
+  v_cursor := v_abertura;
+  while (v_cursor + make_interval(mins => v_duracao)) <= v_fechamento loop
+    if (
+      v_h_intervalo_inicio is not null
+      and v_h_intervalo_fim is not null
+      and v_cursor < v_h_intervalo_fim
+      and (v_cursor + make_interval(mins => v_duracao))::time > v_h_intervalo_inicio
+    ) then
+      v_cursor := greatest((v_cursor + v_passo)::time, v_h_intervalo_fim);
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from public.agendamentos a
+      where a.barbeiro_id = p_barbeiro_id
+        and a.data = p_data
+        and a.status not in ('cancelado', 'desistencia_cliente')
+        and (v_cursor < a.hora_fim and (v_cursor + make_interval(mins => v_duracao))::time > a.hora_inicio)
+    ) then
+      if (p_data > v_today_sp) or (p_data = v_today_sp and v_cursor > v_time_sp) then
+        hora_inicio := v_cursor;
+        return next;
+      end if;
+    end if;
+
+    v_cursor := (v_cursor + v_passo)::time;
+  end loop;
+end;
+$$;
+
+
+create or replace function public.atualizar_agendamentos_atrasados()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_total integer;
+  v_now_sp timestamp;
+  v_today_sp date;
+  v_time_sp time;
+begin
+  v_now_sp := now() at time zone 'America/Sao_Paulo';
+  v_today_sp := v_now_sp::date;
+  v_time_sp := v_now_sp::time;
+
+  update public.agendamentos a
+  set status = 'concluido'
+  where a.status = 'agendado'
+    and (
+      (a.data < v_today_sp)
+      or (a.data = v_today_sp and a.hora_fim <= v_time_sp)
+    );
+
+  get diagnostics v_total = row_count;
+  return v_total;
+end;
+$$;
+
+grant execute on function public.atualizar_agendamentos_atrasados() to authenticated;
+
+
+create or replace function public.listar_usuarios_cadastro_admin()
+returns table (
+  id uuid,
+  nome text,
+  email text,
+  telefone text,
+  data_nascimento date,
+  perfil text,
+  ativo boolean,
+  comissao_percentual numeric
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.fn_is_admin() then
+    raise exception 'Apenas admin pode listar usuarios';
+  end if;
+
+  return query
+  select
+    u.id,
+    u.nome,
+    u.email,
+    coalesce(nullif(trim(coalesce(u.telefone, '')), ''), c.telefone, b.telefone) as telefone,
+    u.data_nascimento,
+    u.perfil,
+    u.ativo,
+    b.comissao_percentual
+  from public.usuarios u
+  left join public.clientes c on c.id = u.id
+  left join public.barbeiros b on b.usuario_id = u.id
+  order by u.created_at desc;
+end;
+$$;
+
+grant execute on function public.listar_usuarios_cadastro_admin() to authenticated;
+

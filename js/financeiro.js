@@ -79,6 +79,46 @@ document.addEventListener('DOMContentLoaded', async () => {
   const crValor = document.getElementById('cr-valor');
   const crData = document.getElementById('cr-data');
   const crObservacao = document.getElementById('cr-observacao');
+  const loadedTabs = new Set();
+  const quickFilterButtons = document.querySelectorAll('[data-financeiro-quick-target][data-financeiro-quick-period]');
+
+  const filterSections = {
+    geral: {
+      panel: document.getElementById('financeiro-geral-filtros-panel'),
+      toggle: document.getElementById('btn-toggle-filtro-financeiro-geral'),
+      inicio: fInicio,
+      fim: fFim,
+      apply: document.getElementById('btn-filtrar-financeiro')
+    },
+    receitas: {
+      panel: document.getElementById('financeiro-receitas-filtros-panel'),
+      toggle: document.getElementById('btn-toggle-filtro-financeiro-receitas'),
+      inicio: rsInicio,
+      fim: rsFim,
+      apply: document.getElementById('btn-filtrar-receitas-servicos')
+    },
+    despesas: {
+      panel: document.getElementById('financeiro-despesas-filtros-panel'),
+      toggle: document.getElementById('btn-toggle-filtro-financeiro-despesas'),
+      inicio: dInicio,
+      fim: dFim,
+      apply: document.getElementById('btn-filtrar-despesas')
+    },
+    repasse: {
+      panel: document.getElementById('financeiro-repasse-filtros-panel'),
+      toggle: document.getElementById('btn-toggle-filtro-financeiro-repasse'),
+      inicio: rpInicio,
+      fim: rpFim,
+      apply: document.getElementById('btn-filtrar-repasse')
+    },
+    liquido: {
+      panel: document.getElementById('financeiro-liquido-filtros-panel'),
+      toggle: document.getElementById('btn-toggle-filtro-financeiro-liquido'),
+      inicio: lqInicio,
+      fim: lqFim,
+      apply: document.getElementById('btn-filtrar-liquido')
+    }
+  };
 
   function parseMoney(value) {
     return Number(String(value || '').replace(',', '.'));
@@ -99,6 +139,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     return new Date(`${dateStr}T00:00:00`);
   }
 
+  function quickDateRange(periodo) {
+    const hoje = asDate(window.AppUtils.todayISO());
+    const inicio = new Date(hoje);
+    const fim = new Date(hoje);
+
+    if (periodo === 'semana') {
+      inicio.setDate(inicio.getDate() - inicio.getDay());
+      fim.setDate(inicio.getDate() + 6);
+    } else if (periodo === 'mes') {
+      inicio.setDate(1);
+      fim.setMonth(inicio.getMonth() + 1);
+      fim.setDate(0);
+    }
+
+    return {
+      inicio: window.AppUtils.dateToISO(inicio),
+      fim: window.AppUtils.dateToISO(fim)
+    };
+  }
+
+  function setFilterPanelState(panel, open) {
+    if (!panel) return;
+    panel.classList.toggle('is-open', open);
+  }
+
+  function syncQuickButtons(tab) {
+    const section = filterSections[tab];
+    if (!section?.inicio || !section?.fim) return;
+
+    const selected = ['dia', 'semana', 'mes'].find((periodo) => {
+      const range = quickDateRange(periodo);
+      return section.inicio.value === range.inicio && section.fim.value === range.fim;
+    }) || '';
+
+    quickFilterButtons.forEach((button) => {
+      if (button.dataset.financeiroQuickTarget !== tab) return;
+      button.classList.toggle('active', button.dataset.financeiroQuickPeriod === selected);
+    });
+  }
+
   function sumBy(rows, getValue) {
     return rows.reduce((acc, row) => acc + Number(getValue(row) || 0), 0);
   }
@@ -109,6 +189,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!panel) return;
       panel.classList.toggle('active', name === tab);
     });
+  }
+
+  function currentHashTab() {
+    const tab = window.location.hash.replace('#', '').trim();
+    return panelByTab[tab] ? tab : 'geral';
+  }
+
+  async function applyHashTab(force = false) {
+    const tab = currentHashTab();
+    setTab(tab);
+    await ensureTabLoaded(tab, force);
+  }
+
+  async function ensureTabLoaded(tab, force = false) {
+    if (!force && loadedTabs.has(tab)) return;
+
+    if (tab === 'geral') {
+      await loadGeral();
+    } else if (tab === 'receitas') {
+      await loadReceitasHistorico();
+    } else if (tab === 'despesas') {
+      await loadDespesas();
+    } else if (tab === 'contas') {
+      await Promise.all([loadContasReceber(), loadServicosParaReceber()]);
+    } else if (tab === 'repasse') {
+      await loadRepasseBarbeiros();
+    } else if (tab === 'liquido') {
+      await loadLiquidoEmpresa();
+    }
+
+    loadedTabs.add(tab);
   }
 
   async function loadBarbeiros() {
@@ -514,8 +625,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      setTab(btn.dataset.financeiroTab);
+    btn.addEventListener('click', async () => {
+      window.location.hash = btn.dataset.financeiroTab;
+      try {
+        await applyHashTab();
+      } catch (err) {
+        window.AppUtils.notify(info, err.message, true);
+      }
+    });
+  });
+
+  Object.entries(filterSections).forEach(([tab, section]) => {
+    if (section.toggle) {
+      section.toggle.addEventListener('click', () => {
+        setFilterPanelState(section.panel, !section.panel?.classList.contains('is-open'));
+      });
+    }
+
+    if (section.inicio) {
+      section.inicio.addEventListener('change', () => syncQuickButtons(tab));
+    }
+
+    if (section.fim) {
+      section.fim.addEventListener('change', () => syncQuickButtons(tab));
+    }
+  });
+
+  quickFilterButtons.forEach((button) => {
+    button.addEventListener('click', async () => {
+      const tab = button.dataset.financeiroQuickTarget;
+      const periodo = button.dataset.financeiroQuickPeriod;
+      const section = filterSections[tab];
+      if (!section?.inicio || !section?.fim || !section.apply) return;
+
+      const range = quickDateRange(periodo);
+      section.inicio.value = range.inicio;
+      section.fim.value = range.fim;
+      syncQuickButtons(tab);
+      setFilterPanelState(section.panel, false);
+
+      try {
+        await ensureTabLoaded(tab, true);
+      } catch (err) {
+        window.AppUtils.notify(info, err.message, true);
+      }
     });
   });
 
@@ -546,7 +699,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       formDespesaManual.reset();
       fdData.value = window.AppUtils.todayISO();
 
-      await Promise.all([loadDespesas(), loadGeral()]);
+      loadedTabs.delete('despesas');
+      loadedTabs.delete('geral');
+      await Promise.all([ensureTabLoaded('despesas', true), ensureTabLoaded('geral', true)]);
       window.AppUtils.notify(info, 'Despesa cadastrada com sucesso.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -567,7 +722,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         .eq('id', btn.dataset.id);
       if (error) throw error;
 
-      await Promise.all([loadDespesas(), loadGeral(), loadLiquidoEmpresa()]);
+      loadedTabs.delete('despesas');
+      loadedTabs.delete('geral');
+      loadedTabs.delete('liquido');
+      await Promise.all([
+        ensureTabLoaded('despesas', true),
+        ensureTabLoaded('geral', true),
+        ensureTabLoaded('liquido', true)
+      ]);
       window.AppUtils.notify(info, 'Despesa excluida com sucesso.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -603,7 +765,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       formContaReceberManual.reset();
       crData.value = window.AppUtils.todayISO();
 
-      await loadContasReceber();
+      loadedTabs.delete('contas');
+      await ensureTabLoaded('contas', true);
       window.AppUtils.notify(info, 'Conta a receber cadastrada com sucesso.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -645,7 +808,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (error) throw error;
       }
 
-      await Promise.all([loadContasReceber(), loadReceitasHistorico(), loadGeral(), loadRepasseBarbeiros(), loadLiquidoEmpresa()]);
+      loadedTabs.delete('contas');
+      loadedTabs.delete('receitas');
+      loadedTabs.delete('geral');
+      loadedTabs.delete('repasse');
+      loadedTabs.delete('liquido');
+      await Promise.all([
+        ensureTabLoaded('contas', true),
+        ensureTabLoaded('receitas', true),
+        ensureTabLoaded('geral', true),
+        ensureTabLoaded('repasse', true),
+        ensureTabLoaded('liquido', true)
+      ]);
       window.AppUtils.notify(info, 'Conta atualizada com sucesso.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -674,13 +848,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (agError) throw agError;
       }
 
+      loadedTabs.delete('contas');
+      loadedTabs.delete('receitas');
+      loadedTabs.delete('geral');
+      loadedTabs.delete('repasse');
+      loadedTabs.delete('liquido');
       await Promise.all([
-        loadServicosParaReceber(),
-        loadContasReceber(),
-        loadReceitasHistorico(),
-        loadGeral(),
-        loadRepasseBarbeiros(),
-        loadLiquidoEmpresa()
+        ensureTabLoaded('contas', true),
+        ensureTabLoaded('receitas', true),
+        ensureTabLoaded('geral', true),
+        ensureTabLoaded('repasse', true),
+        ensureTabLoaded('liquido', true)
       ]);
       window.AppUtils.notify(info, 'Movimentacao criada em contas a receber.');
     } catch (err) {
@@ -690,7 +868,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-filtrar-financeiro').addEventListener('click', async () => {
     try {
-      await loadGeral();
+      syncQuickButtons('geral');
+      await ensureTabLoaded('geral', true);
       window.AppUtils.notify(info, 'Visao geral atualizada.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -699,7 +878,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-filtrar-receitas-servicos').addEventListener('click', async () => {
     try {
-      await loadReceitasHistorico();
+      syncQuickButtons('receitas');
+      await ensureTabLoaded('receitas', true);
       window.AppUtils.notify(info, 'Receitas atualizadas.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -708,7 +888,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-filtrar-despesas').addEventListener('click', async () => {
     try {
-      await loadDespesas();
+      syncQuickButtons('despesas');
+      await ensureTabLoaded('despesas', true);
       window.AppUtils.notify(info, 'Despesas atualizadas.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -717,7 +898,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-filtrar-repasse').addEventListener('click', async () => {
     try {
-      await loadRepasseBarbeiros();
+      syncQuickButtons('repasse');
+      await ensureTabLoaded('repasse', true);
       window.AppUtils.notify(info, 'Repasse atualizado.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -726,11 +908,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-filtrar-liquido').addEventListener('click', async () => {
     try {
-      await loadLiquidoEmpresa();
+      syncQuickButtons('liquido');
+      await ensureTabLoaded('liquido', true);
       window.AppUtils.notify(info, 'Liquido da empresa atualizado.');
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
+  });
+
+  window.addEventListener('hashchange', () => {
+    applyHashTab().catch((err) => window.AppUtils.notify(info, err.message, true));
   });
 
   try {
@@ -738,27 +925,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     fdData.value = today;
     crData.value = today;
-    rpInicio.value = today.slice(0, 8) + '01';
+    fInicio.value = today;
+    fFim.value = today;
+    rsInicio.value = today;
+    rsFim.value = today;
+    dInicio.value = today;
+    dFim.value = today;
+    rpInicio.value = today;
     rpFim.value = today;
-    lqInicio.value = today.slice(0, 8) + '01';
+    lqInicio.value = today;
     lqFim.value = today;
+
+    syncQuickButtons('geral');
+    syncQuickButtons('receitas');
+    syncQuickButtons('despesas');
+    syncQuickButtons('repasse');
+    syncQuickButtons('liquido');
 
     await Promise.all([
       loadBarbeiros(),
       loadCategoriasDespesa()
     ]);
 
-    await Promise.all([
-      loadGeral(),
-      loadReceitasHistorico(),
-      loadDespesas(),
-      loadContasReceber(),
-      loadServicosParaReceber(),
-      loadRepasseBarbeiros(),
-      loadLiquidoEmpresa()
-    ]);
-
-    setTab('geral');
+    if (!window.location.hash) {
+      window.location.hash = 'geral';
+    }
+    await applyHashTab(true);
   } catch (err) {
     window.AppUtils.notify(info, err.message, true);
   }

@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       : 'Nenhum agendamento futuro.';
 
     const historico = rows.filter((r) => r.status === 'concluido');
+    historico.sort((a, b) => new Date(`${b.data}T${b.hora_inicio}`) - new Date(`${a.data}T${a.hora_inicio}`));
     document.getElementById('cliente-total-servicos').textContent = String(historico.length);
     document.getElementById('cliente-total-agendados').textContent = String(
       rows.filter((r) => r.status === 'agendado' || r.status === 'em_atendimento').length

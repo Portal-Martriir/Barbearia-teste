@@ -14,9 +14,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inicioWrap = document.getElementById('agenda-admin-inicio-wrap');
   const fimWrap = document.getElementById('agenda-admin-fim-wrap');
   const aplicarFiltroBtn = document.getElementById('btn-aplicar-filtro-agenda-admin');
+  const toggleFiltroBtn = document.getElementById('btn-toggle-filtro-agenda-admin');
+  const filtrosPanel = document.getElementById('agenda-filtros-panel');
   const dataLabel = document.getElementById('agenda-data-label');
+  const quickPeriodButtons = document.querySelectorAll('[data-quick-period]');
 
-  if (!tbody || !filtroBarbeiro || !periodoSelect || !dataInicioInput || !dataFimInput || !aplicarFiltroBtn || !dataLabel) {
+  if (!tbody || !filtroBarbeiro || !periodoSelect || !dataInicioInput || !dataFimInput || !aplicarFiltroBtn || !toggleFiltroBtn || !filtrosPanel || !dataLabel || quickPeriodButtons.length === 0) {
     window.AppUtils.notify(info, 'Elementos da agenda nao foram encontrados.', true);
     return;
   }
@@ -35,6 +38,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (fimWrap) fimWrap.hidden = !isCustom;
   }
 
+  function syncQuickPeriodButtons() {
+    quickPeriodButtons.forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.quickPeriod === (periodoSelect.value || 'dia'));
+    });
+  }
+
+  function setFilterPanelState(open) {
+    filtrosPanel.classList.toggle('is-open', open);
+    toggleFiltroBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggleFiltroBtn.textContent = open ? 'Fechar filtro' : 'Filtro';
+  }
+
   function periodRange(periodo) {
     if (periodo === 'personalizado') {
       const inicioCustom = dataInicioInput.value;
@@ -51,8 +66,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       return {
-        inicioISO: inicioDate.toISOString().slice(0, 10),
-        fimISO: fimDate.toISOString().slice(0, 10)
+        inicioISO: window.AppUtils.dateToISO(inicioDate),
+        fimISO: window.AppUtils.dateToISO(fimDate)
       };
     }
 
@@ -70,8 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     return {
-      inicioISO: inicio.toISOString().slice(0, 10),
-      fimISO: fim.toISOString().slice(0, 10)
+      inicioISO: window.AppUtils.dateToISO(inicio),
+      fimISO: window.AppUtils.dateToISO(fim)
     };
   }
 
@@ -135,8 +150,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         `)
         .gte('data', inicioISO)
         .lte('data', fimISO)
-        .order('data', { ascending: true })
-        .order('hora_inicio', { ascending: true });
+        .order('data', { ascending: false })
+        .order('hora_inicio', { ascending: false });
 
       if (filtroBarbeiro.value) {
         query = query.eq('barbeiro_id', filtroBarbeiro.value);
@@ -183,9 +198,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     await window.Api.updateAgendamento(id, { status: nextStatus });
   }
 
-  periodoSelect.addEventListener('change', showDateFilters);
-  filtroBarbeiro.addEventListener('change', loadAgendamentos);
+  periodoSelect.addEventListener('change', () => {
+    showDateFilters();
+    syncQuickPeriodButtons();
+  });
   aplicarFiltroBtn.addEventListener('click', loadAgendamentos);
+  toggleFiltroBtn.addEventListener('click', () => {
+    setFilterPanelState(!filtrosPanel.classList.contains('is-open'));
+  });
+  quickPeriodButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      periodoSelect.value = btn.dataset.quickPeriod;
+      showDateFilters();
+      syncQuickPeriodButtons();
+      loadAgendamentos().catch((err) => window.AppUtils.notify(info, err.message, true));
+    });
+  });
 
   tbody.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-action]');
@@ -214,7 +242,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   try {
+    setFilterPanelState(false);
     showDateFilters();
+    syncQuickPeriodButtons();
     await loadBarbeirosFilter();
     await loadAgendamentos();
   } catch (err) {

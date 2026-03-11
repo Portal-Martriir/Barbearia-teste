@@ -44,32 +44,46 @@
         <p id="agenda-info" class="muted"></p>
 
         <section class="card">
-          <h3>Visualizacao da agenda</h3>
-          <div class="form-row compact-filters">
-            <label>Barbeiro
-              <select id="filtro-barbeiro"></select>
-            </label>
-            <label>Periodo
-              <select id="agenda-periodo-admin">
-                <option value="dia">Dia</option>
-                <option value="semana">Semana</option>
-                <option value="mes">Mes</option>
-                <option value="personalizado">Personalizado</option>
-              </select>
-            </label>
-            <label id="agenda-admin-inicio-wrap" hidden>Data inicial
-              <input id="agenda-data-inicio-admin" type="date" />
-            </label>
-            <label id="agenda-admin-fim-wrap" hidden>Data final
-              <input id="agenda-data-fim-admin" type="date" />
-            </label>
+          <div class="rowBetween">
+            <div>
+              <h3>Visualizacao da agenda</h3>
+              <p class="muted">Periodo selecionado: <strong id="agenda-data-label">-</strong></p>
+            </div>
+            <div class="agenda-toolbar">
+              <div class="quick-filter-group" aria-label="Filtro rapido de periodo">
+                <button type="button" class="quick-filter-btn active" data-quick-period="dia">Dia</button>
+                <button type="button" class="quick-filter-btn" data-quick-period="semana">Semana</button>
+                <button type="button" class="quick-filter-btn" data-quick-period="mes">Mes</button>
+              </div>
+              <button id="btn-toggle-filtro-agenda-admin" type="button" class="btn-secondary">Filtro</button>
+            </div>
           </div>
 
-          <div class="section-actions">
-            <button id="btn-aplicar-filtro-agenda-admin" type="button" class="btn-primary">Aplicar filtro</button>
-          </div>
+          <div id="agenda-filtros-panel" class="agenda-filter-panel">
+            <div class="form-row compact-filters">
+              <label>Barbeiro
+                <select id="filtro-barbeiro"></select>
+              </label>
+              <label>Periodo
+                <select id="agenda-periodo-admin">
+                  <option value="dia">Dia</option>
+                  <option value="semana">Semana</option>
+                  <option value="mes">Mes</option>
+                  <option value="personalizado">Personalizado</option>
+                </select>
+              </label>
+              <label id="agenda-admin-inicio-wrap" hidden>Data inicial
+                <input id="agenda-data-inicio-admin" type="date" />
+              </label>
+              <label id="agenda-admin-fim-wrap" hidden>Data final
+                <input id="agenda-data-fim-admin" type="date" />
+              </label>
+            </div>
 
-          <p class="muted">Periodo selecionado: <strong id="agenda-data-label">-</strong></p>
+            <div class="section-actions">
+              <button id="btn-aplicar-filtro-agenda-admin" type="button" class="btn-primary">Aplicar filtro</button>
+            </div>
+          </div>
         </section>
 
         <section class="card table-wrap">

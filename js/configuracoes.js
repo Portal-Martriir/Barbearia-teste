@@ -5,10 +5,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   await window.CommonUI.setupLayout(user);
 
   const info = document.getElementById('config-info');
+  const tabButtons = document.querySelectorAll('[data-config-tab]');
+  const panelHorarios = document.getElementById('config-panel-horarios');
+  const panelSenhas = document.getElementById('config-panel-senhas');
+
   const selectBarbeiro = document.getElementById('cfg-barbeiro');
   const semanaRefInput = document.getElementById('cfg-semana-ref');
   const horariosBody = document.getElementById('cfg-barbeiro-horarios-body');
   const btnSalvarBarbeiro = document.getElementById('btn-salvar-horarios-barbeiro');
+
+  const passwordInfo = document.getElementById('cfg-password-info');
+  const userSearchInput = document.getElementById('cfg-user-search');
+  const btnBuscarUsuario = document.getElementById('btn-buscar-usuario-senha');
+  const userPreviewEl = document.getElementById('cfg-user-preview');
+  const userList = document.getElementById('cfg-user-list');
+  const selectedUserEl = document.getElementById('cfg-selected-user');
+  const newPasswordInput = document.getElementById('cfg-new-password');
+  const confirmPasswordInput = document.getElementById('cfg-confirm-password');
+  const btnSalvarSenha = document.getElementById('btn-salvar-senha-usuario');
+  const userSearchModalInput = document.getElementById('cfg-user-search-modal');
+  const btnFiltrarUsuario = document.getElementById('btn-filtrar-usuario-senha');
+  const userModalRoot = document.getElementById('cfg-user-modal-root');
+  const userModalBackdrop = document.getElementById('cfg-user-modal-backdrop');
+  const userModalClose = document.getElementById('cfg-user-modal-close');
 
   const diasSemana = [
     { id: 0, nome: 'Domingo' },
@@ -26,8 +45,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     intervalo_minutos: 30
   };
 
+  let usuariosCache = [];
+  let selectedUserId = null;
+
+  function openUserModal() {
+    userModalRoot.hidden = false;
+    userModalRoot.setAttribute('aria-hidden', 'false');
+    userSearchModalInput.value = userSearchInput.value;
+    renderUsuariosSenha(userSearchModalInput.value);
+    userSearchModalInput.focus();
+  }
+
+  function closeUserModal() {
+    userModalRoot.hidden = true;
+    userModalRoot.setAttribute('aria-hidden', 'true');
+  }
+
+  function setTab(tab) {
+    tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.configTab === tab));
+    panelHorarios.classList.toggle('active', tab === 'horarios');
+    panelSenhas.classList.toggle('active', tab === 'senhas');
+  }
+
+  function currentHashTab() {
+    const tab = window.location.hash.replace('#', '').trim();
+    return ['horarios', 'senhas'].includes(tab) ? tab : 'horarios';
+  }
+
+  function applyHashTab() {
+    setTab(currentHashTab());
+  }
+
   function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+    return window.AppUtils.dateToISO(date);
   }
 
   function parseIsoDate(value) {
@@ -99,7 +149,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    selectBarbeiro.innerHTML = rows.map((b) => `<option value="${b.id}">${b.nome}</option>`).join('');
+    selectBarbeiro.innerHTML = rows.map((b) => (
+      `<option value="${window.AppUtils.escapeAttr(b.id)}">${window.AppUtils.escapeHtml(b.nome)}</option>`
+    )).join('');
   }
 
   async function loadHorariosBarbeiro() {
@@ -116,9 +168,115 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (error) throw error;
 
     const map = new Map((data || []).map((h) => [Number(h.dia_semana), h]));
-    const datesMap = weekDatesMap(semanaRefInput.value);
-    renderHorarioRows(map, datesMap);
+    renderHorarioRows(map, weekDatesMap(semanaRefInput.value));
   }
+
+  function renderSelectedUser() {
+    const usuario = usuariosCache.find((item) => String(item.id) === String(selectedUserId));
+    if (!usuario) {
+      selectedUserEl.textContent = 'Selecione um usuario para trocar a senha.';
+      userPreviewEl.textContent = 'Nenhum usuario selecionado.';
+      return;
+    }
+
+    const html = `
+      <strong>${window.AppUtils.escapeHtml(usuario.nome || 'Usuario sem nome')}</strong><br />
+      <span>${window.AppUtils.escapeHtml(usuario.email || 'Email nao informado')}</span><br />
+      <small>${window.AppUtils.escapeHtml(usuario.perfil || 'sem perfil')} ${usuario.ativo ? '| ativo' : '| inativo'}</small>
+    `;
+    selectedUserEl.innerHTML = html;
+    userPreviewEl.innerHTML = html;
+  }
+
+  function renderUsuariosSenha(searchValue = userSearchInput.value) {
+    const termo = String(searchValue || '').trim().toLowerCase();
+    const rows = usuariosCache.filter((usuario) => {
+      if (!termo) return true;
+      const nome = String(usuario.nome || '').toLowerCase();
+      const email = String(usuario.email || '').toLowerCase();
+      return nome.includes(termo) || email.includes(termo);
+    });
+
+    if (rows.length === 0) {
+      userList.innerHTML = '<div class="password-empty-state">Nenhum usuario encontrado para a busca informada.</div>';
+      return;
+    }
+
+    userList.innerHTML = rows.map((usuario) => `
+      <button
+        type="button"
+        class="password-user-item ${String(usuario.id) === String(selectedUserId) ? 'active' : ''}"
+        data-user-id="${window.AppUtils.escapeAttr(usuario.id)}"
+      >
+        <strong>${window.AppUtils.escapeHtml(usuario.nome || 'Usuario sem nome')}</strong>
+        <span>${window.AppUtils.escapeHtml(usuario.email || 'Email nao informado')}</span>
+        <small>${window.AppUtils.escapeHtml(usuario.perfil || 'sem perfil')} ${usuario.ativo ? '| ativo' : '| inativo'}</small>
+      </button>
+    `).join('');
+  }
+
+  async function loadUsuariosSenha() {
+    const { data, error } = await window.sb.rpc('listar_usuarios_cadastro_admin');
+    if (error) throw error;
+
+    usuariosCache = data || [];
+    if (!selectedUserId && usuariosCache[0]?.id) {
+      selectedUserId = usuariosCache[0].id;
+    } else if (selectedUserId && !usuariosCache.some((item) => String(item.id) === String(selectedUserId))) {
+      selectedUserId = usuariosCache[0]?.id || null;
+    }
+
+    renderUsuariosSenha();
+    renderSelectedUser();
+  }
+
+  function validatePasswordForm() {
+    const senha = String(newPasswordInput.value || '');
+    const confirmacao = String(confirmPasswordInput.value || '');
+
+    if (!selectedUserId) {
+      throw new Error('Selecione um usuario para trocar a senha.');
+    }
+    if (!senha || !confirmacao) {
+      throw new Error('Preencha a nova senha e a confirmacao.');
+    }
+    if (senha.length < 6) {
+      throw new Error('A senha deve ter no minimo 6 caracteres.');
+    }
+    if (senha !== confirmacao) {
+      throw new Error('Senha e confirmacao precisam ser iguais.');
+    }
+
+    return senha;
+  }
+
+  async function savePassword() {
+    try {
+      const senha = validatePasswordForm();
+      btnSalvarSenha.disabled = true;
+
+      const { error } = await window.sb.rpc('admin_definir_senha_usuario', {
+        p_usuario_id: selectedUserId,
+        p_nova_senha: senha
+      });
+      if (error) throw error;
+
+      newPasswordInput.value = '';
+      confirmPasswordInput.value = '';
+      window.AppUtils.notify(passwordInfo, 'Senha alterada com sucesso.');
+    } catch (err) {
+      window.AppUtils.notify(passwordInfo, err.message, true);
+    } finally {
+      btnSalvarSenha.disabled = false;
+    }
+  }
+
+  tabButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.location.hash = btn.dataset.configTab;
+      applyHashTab();
+    });
+  });
 
   selectBarbeiro.addEventListener('change', () => {
     loadHorariosBarbeiro().catch((err) => window.AppUtils.notify(info, err.message, true));
@@ -169,10 +327,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if ((inicioIntervalo && !voltaIntervalo) || (!inicioIntervalo && voltaIntervalo)) {
           throw new Error(`Preencha inicio e volta do intervalo de ${d.nome}.`);
         }
-        if (inicioIntervalo && voltaIntervalo) {
-          if (!(inicio < inicioIntervalo && inicioIntervalo < voltaIntervalo && voltaIntervalo < fim)) {
-            throw new Error(`Intervalo de almoco invalido em ${d.nome}.`);
-          }
+        if (inicioIntervalo && voltaIntervalo && !(inicio < inicioIntervalo && inicioIntervalo < voltaIntervalo && voltaIntervalo < fim)) {
+          throw new Error(`Intervalo de almoco invalido em ${d.nome}.`);
         }
         if (!Number.isFinite(intv) || intv < 5 || intv > 120) {
           throw new Error(`Intervalo invalido em ${d.nome}: use um valor entre 5 e 120 minutos.`);
@@ -198,9 +354,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  userSearchInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      openUserModal();
+    }
+  });
+
+  btnBuscarUsuario.addEventListener('click', openUserModal);
+  btnFiltrarUsuario.addEventListener('click', () => {
+    userSearchInput.value = userSearchModalInput.value;
+    renderUsuariosSenha(userSearchModalInput.value);
+  });
+
+  userSearchModalInput.addEventListener('input', () => {
+    renderUsuariosSenha(userSearchModalInput.value);
+  });
+
+  userList.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-user-id]');
+    if (!btn) return;
+    selectedUserId = btn.dataset.userId;
+    userSearchInput.value = userSearchModalInput.value;
+    renderUsuariosSenha();
+    renderSelectedUser();
+    passwordInfo.className = 'muted';
+    passwordInfo.textContent = '';
+    closeUserModal();
+  });
+
+  userModalBackdrop.addEventListener('click', closeUserModal);
+  userModalClose.addEventListener('click', closeUserModal);
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !userModalRoot.hidden) {
+      closeUserModal();
+    }
+  });
+
+  document.querySelectorAll('[data-password-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.passwordToggle);
+      if (!target) return;
+      const showing = target.type === 'text';
+      target.type = showing ? 'password' : 'text';
+      btn.textContent = showing ? 'Mostrar' : 'Ocultar';
+    });
+  });
+
+  btnSalvarSenha.addEventListener('click', savePassword);
+
+  [newPasswordInput, confirmPasswordInput].forEach((input) => {
+    input.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        savePassword().catch(() => {});
+      }
+    });
+  });
+
+  window.addEventListener('hashchange', applyHashTab);
+
   try {
+    if (!window.location.hash) {
+      window.location.hash = 'horarios';
+    }
+    applyHashTab();
     semanaRefInput.value = isoDate(new Date());
-    await loadBarbeiros();
+    await Promise.all([
+      loadBarbeiros(),
+      loadUsuariosSenha()
+    ]);
     await loadHorariosBarbeiro();
   } catch (err) {
     window.AppUtils.notify(info, err.message, true);

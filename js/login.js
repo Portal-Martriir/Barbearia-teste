@@ -21,9 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let srSelectedDate = new Date();
   let srViewMonth = new Date(srSelectedDate.getFullYear(), srSelectedDate.getMonth(), 1);
+  let quickSlotsRequestId = 0;
 
   function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+    return window.AppUtils.dateToISO(date);
   }
 
   function normalizeDate(d) {
@@ -60,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadQuickSlots() {
+    const requestId = ++quickSlotsRequestId;
     srHoraInput.value = '';
     srHorarioSelecionado.textContent = 'Selecione um horario para confirmar.';
 
@@ -78,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         p_servico_id: servicoId
       });
       if (error) throw error;
+      if (requestId !== quickSlotsRequestId) return;
 
       const rows = slots || [];
       if (rows.length === 0) {
@@ -87,9 +90,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       srSlots.innerHTML = rows.map((slot) => {
         const value = String(slot.hora_inicio).slice(0, 5);
-        return `<button type="button" class="slot-btn" data-hora="${value}">${value}</button>`;
+        const safeValue = window.AppUtils.escapeAttr(value);
+        return `<button type="button" class="slot-btn" data-hora="${safeValue}">${window.AppUtils.escapeHtml(value)}</button>`;
       }).join('');
     } catch (err) {
+      if (requestId !== quickSlotsRequestId) return;
       window.AppUtils.notify(agendarInfo, err.message, true);
     }
   }
@@ -133,7 +138,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectEl.innerHTML = '<option value="">Sem opcoes disponiveis</option>';
       return;
     }
-    selectEl.innerHTML = list.map((item) => `<option value="${item.id}">${labelBuilder(item)}</option>`).join('');
+    selectEl.innerHTML = list.map((item) => (
+      `<option value="${window.AppUtils.escapeAttr(item.id)}">${window.AppUtils.escapeHtml(labelBuilder(item))}</option>`
+    )).join('');
   }
 
   async function loadAgendamentoOptions() {
@@ -217,6 +224,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.AppUtils.notify(registerInfo, 'Informe seu nome para concluir o registro.', true);
       return;
     }
+    if (!telefone) {
+      window.AppUtils.notify(registerInfo, 'Informe seu telefone para concluir o registro.', true);
+      return;
+    }
 
     try {
       const { data: signUpData, error: signUpError } = await window.sb.auth.signUp({
@@ -250,9 +261,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('form-agendar-rapido-login').addEventListener('submit', async (ev) => {
     ev.preventDefault();
+    const nome = document.getElementById('sr-nome').value.trim();
     const telefone = document.getElementById('sr-telefone').value.trim();
     const barbeiroId = srBarbeiro.value;
     const servicoId = srServico.value;
+    if (!nome) {
+      window.AppUtils.notify(agendarInfo, 'Nome e obrigatorio para agendar sem cadastro.', true);
+      return;
+    }
     if (!telefone) {
       window.AppUtils.notify(agendarInfo, 'Telefone e obrigatorio para agendar sem cadastro.', true);
       return;
@@ -273,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const { error } = await window.sb.rpc('criar_agendamento_publico', {
         p_cliente_id: null,
-        p_nome: document.getElementById('sr-nome').value.trim(),
+        p_nome: nome,
         p_telefone: telefone,
         p_barbeiro_id: barbeiroId,
         p_servico_id: servicoId,

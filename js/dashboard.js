@@ -15,8 +15,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     atendimentos: document.getElementById('atendimentos-hoje'),
     agendamentos: document.getElementById('agendamentos-hoje'),
     topBarbeiro: document.getElementById('top-barbeiro-hoje'),
-    contasReceber: document.getElementById('dashboard-contas-receber'),
-    despesasHoje: document.getElementById('dashboard-despesas-hoje'),
     comissoesHoje: document.getElementById('dashboard-comissoes-hoje'),
     liquidoHoje: document.getElementById('dashboard-liquido-hoje')
   };
@@ -109,112 +107,38 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     return {
-      inicio: inicio.toISOString().slice(0, 10),
-      fim: fim.toISOString().slice(0, 10)
+      inicio: window.AppUtils.dateToISO(inicio),
+      fim: window.AppUtils.dateToISO(fim)
     };
   }
 
   async function loadDashboard() {
     const periodo = periodoSelect.value || 'hoje';
     const { inicio, fim } = periodBounds(periodo);
-
-    const [agRes, finRes, despRes, contasManuaisRes] = await Promise.all([
-      window.sb
-        .from('agendamentos')
-        .select('data, hora_inicio, status, valor, clientes(nome), barbeiros(nome), servicos(nome)')
-        .gte('data', inicio)
-        .lte('data', fim)
-        .order('data', { ascending: true })
-        .order('hora_inicio', { ascending: true }),
-      window.sb
-        .from('financeiro')
-        .select('data, valor_servico, comissao_barbeiro, status_pagamento, barbeiros(nome), agendamentos(clientes(nome), servicos(nome))')
-        .gte('data', inicio)
-        .lte('data', fim),
-      window.sb
-        .from('despesas')
-        .select('data, descricao, valor')
-        .gte('data', inicio)
-        .lte('data', fim),
-      window.sb
-        .from('contas_receber_manuais')
-        .select('id, data, descricao, valor, status')
-        .eq('status', 'pendente')
-        .gte('data', inicio)
-        .lte('data', fim)
-    ]);
-
-    if (agRes.error) throw agRes.error;
-    if (finRes.error) throw finRes.error;
-    if (despRes.error) throw despRes.error;
-
-    const agRows = agRes.data || [];
-    const finRows = finRes.data || [];
-    const despRows = despRes.data || [];
-
-    const finPagos = finRows.filter((r) => r.status_pagamento === 'pago');
-    const finPendentes = finRows.filter((r) => r.status_pagamento === 'pendente');
-
-    const totalFaturado = finPagos.reduce((acc, r) => acc + Number(r.valor_servico || 0), 0);
-    const totalComissoes = finPagos.reduce((acc, r) => acc + Number(r.comissao_barbeiro || 0), 0);
-    const totalDespesas = despRows.reduce((acc, r) => acc + Number(r.valor || 0), 0);
-    const totalLiquido = totalFaturado - totalComissoes;
-
-    const atendimentosConcluidos = agRows.filter((a) => a.status === 'concluido').length;
-    const agendamentosPeriodo = agRows.length;
-
-    const porBarbeiro = {};
-    finPagos.forEach((row) => {
-      const nome = row.barbeiros?.nome || 'Sem nome';
-      porBarbeiro[nome] = (porBarbeiro[nome] || 0) + Number(row.valor_servico || 0);
+    const { data, error } = await window.sb.rpc('dashboard_admin_resumo', {
+      p_inicio: inicio,
+      p_fim: fim
     });
-    const top = Object.entries(porBarbeiro).sort((a, b) => b[1] - a[1])[0];
+    if (error) throw error;
 
-    const contasManuais = contasManuaisRes.error ? [] : (contasManuaisRes.data || []);
-    const totalContas = finPendentes.reduce((acc, r) => acc + Number(r.valor_servico || 0), 0)
-      + contasManuais.reduce((acc, r) => acc + Number(r.valor || 0), 0);
+    const resumo = data || {};
+    const top = resumo.topBarbeiro || null;
+    const series = Array.isArray(resumo.series)
+      ? resumo.series.map((point) => ({
+        ...point,
+        label: window.AppUtils.formatDate(point.data),
+        shortLabel: formatShortDate(point.data)
+      }))
+      : [];
+    const rankingRows = Array.isArray(resumo.ranking) ? resumo.ranking : [];
 
-    const groupedByDate = new Map();
-    const allDates = new Set([
-      ...agRows.map((row) => row.data),
-      ...finRows.map((row) => row.data),
-      ...despRows.map((row) => row.data)
-    ]);
-
-    Array.from(allDates)
-      .sort()
-      .forEach((date) => {
-        groupedByDate.set(date, {
-          label: window.AppUtils.formatDate(date),
-          shortLabel: formatShortDate(date),
-          receita: 0,
-          comissao: 0,
-          liquido: 0
-        });
-      });
-
-    finPagos.forEach((row) => {
-      const bucket = groupedByDate.get(row.data);
-      if (!bucket) return;
-      bucket.receita += Number(row.valor_servico || 0);
-      bucket.comissao += Number(row.comissao_barbeiro || 0);
-      bucket.liquido += Number(row.valor_servico || 0) - Number(row.comissao_barbeiro || 0);
-    });
-
-    const rankingRows = Object.entries(porBarbeiro)
-      .map(([nome, total]) => ({ nome, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6);
-
-    cards.totalFaturado.textContent = window.AppUtils.formatMoney(totalFaturado);
-    cards.atendimentos.textContent = String(atendimentosConcluidos);
-    cards.agendamentos.textContent = String(agendamentosPeriodo);
-    cards.topBarbeiro.textContent = top ? `${top[0]} (${window.AppUtils.formatMoney(top[1])})` : 'Sem dados';
-    cards.contasReceber.textContent = window.AppUtils.formatMoney(totalContas);
-    cards.despesasHoje.textContent = window.AppUtils.formatMoney(totalDespesas);
-    cards.comissoesHoje.textContent = window.AppUtils.formatMoney(totalComissoes);
-    cards.liquidoHoje.textContent = window.AppUtils.formatMoney(totalLiquido);
-    renderSeriesChart(Array.from(groupedByDate.values()));
+    cards.totalFaturado.textContent = window.AppUtils.formatMoney(resumo.totalFaturado || 0);
+    cards.atendimentos.textContent = String(resumo.atendimentos || 0);
+    cards.agendamentos.textContent = String(resumo.agendamentos || 0);
+    cards.topBarbeiro.textContent = top ? `${top.nome} (${window.AppUtils.formatMoney(top.total || 0)})` : 'Sem dados';
+    cards.comissoesHoje.textContent = window.AppUtils.formatMoney(resumo.comissoes || 0);
+    cards.liquidoHoje.textContent = window.AppUtils.formatMoney(resumo.liquido || 0);
+    renderSeriesChart(series);
     renderRankingChart(rankingRows);
   }
 

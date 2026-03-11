@@ -43,12 +43,6 @@
         <h1>Cadastros</h1>
         <p id="cadastro-info" class="muted"></p>
 
-        <div class="auth-tab-wrap">
-          <button type="button" class="auth-tab-btn active" data-cadastro-tab="usuarios">Usuarios</button>
-          <button type="button" class="auth-tab-btn" data-cadastro-tab="servicos">Servicos</button>
-          <button type="button" class="auth-tab-btn" data-cadastro-tab="despesas">Despesas</button>
-        </div>
-
         <div class="auth-panel active" id="cadastro-panel-usuarios">
           <section class="card user-subtabs-card">
             <div class="rowBetween">
@@ -81,9 +75,17 @@
           </section>
 
           <section class="card">
-            <h3>Cadastro manual desativado</h3>
-            <p class="muted">Usuarios se cadastram apenas na tela de login. Aqui o admin somente gerencia o perfil dos usuarios.</p>
-            <p id="usuarios-subtab-info" class="muted"></p>
+            <div class="rowBetween">
+              <div>
+                <h3>Filtrar usuarios</h3>
+                <p id="usuarios-subtab-info" class="muted"></p>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Busca
+                <input id="usuarios-filtro-busca" type="search" placeholder="Buscar por nome, e-mail ou telefone" />
+              </label>
+            </div>
           </section>
 
           <section class="card table-wrap">

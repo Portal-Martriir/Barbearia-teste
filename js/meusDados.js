@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const { data, error } = await window.sb
         .from('usuarios')
-        .select('*')
+        .select('nome, email, telefone, data_nascimento')
         .eq('id', usuarioId)
         .maybeSingle();
 
@@ -48,37 +48,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  async function loadTelefonePorPerfil(perfil, usuarioId) {
-    if (perfil === 'cliente') {
-      try {
-        const { data, error } = await window.sb.rpc('obter_cliente_auth');
-        if (!error && Array.isArray(data) && data[0]?.telefone) {
-          return data[0].telefone;
-        }
-      } catch (_) {
-        // fallback abaixo
-      }
-    }
-
-    if (perfil === 'barbeiro' || perfil === 'admin') {
-      try {
-        const { data, error } = await window.sb
-          .from('barbeiros')
-          .select('telefone')
-          .eq('usuario_id', usuarioId)
-          .maybeSingle();
-
-        if (!error && data?.telefone) {
-          return data.telefone;
-        }
-      } catch (_) {
-        // fallback abaixo
-      }
-    }
-
-    return null;
-  }
-
   try {
     const user = await window.Auth.requireAuth(['admin', 'barbeiro', 'cliente']);
     if (!user) return;
@@ -87,10 +56,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const session = await window.Auth.getSession();
     const usuarioExtra = await loadUsuarioExtra(user.id);
-    const telefonePerfil = await loadTelefonePorPerfil(user.perfil, user.id);
-
-    const telefone = telefonePerfil
-      || usuarioExtra?.telefone
+    const telefone = usuarioExtra?.telefone
       || session?.user?.user_metadata?.telefone
       || null;
 

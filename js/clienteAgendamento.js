@@ -17,9 +17,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let viewMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   let selectedDate = null;
   let selectedSlot = null;
+  let slotsRequestId = 0;
 
   function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+    return window.AppUtils.dateToISO(date);
   }
 
   function formatMonth(date) {
@@ -35,7 +36,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectEl.innerHTML = '<option value="">Sem opcoes disponiveis</option>';
       return;
     }
-    selectEl.innerHTML = list.map((item) => `<option value="${item.id}">${labelBuilder(item)}</option>`).join('');
+    selectEl.innerHTML = list.map((item) => (
+      `<option value="${window.AppUtils.escapeAttr(item.id)}">${window.AppUtils.escapeHtml(labelBuilder(item))}</option>`
+    )).join('');
   }
 
   async function requireSession() {
@@ -87,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function loadSlots() {
+    const requestId = ++slotsRequestId;
     selectedSlot = null;
     selectedEl.textContent = 'Selecione um horario para confirmar.';
 
@@ -104,6 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         p_servico_id: servicoId
       });
       if (error) throw error;
+      if (requestId !== slotsRequestId) return;
 
       const slots = data || [];
       if (slots.length === 0) {
@@ -113,9 +118,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       slotsEl.innerHTML = slots.map((slot) => {
         const value = String(slot.hora_inicio).slice(0, 5);
-        return `<button type="button" class="slot-btn" data-hora="${value}">${value}</button>`;
+        const safeValue = window.AppUtils.escapeAttr(value);
+        return `<button type="button" class="slot-btn" data-hora="${safeValue}">${window.AppUtils.escapeHtml(value)}</button>`;
       }).join('');
     } catch (err) {
+      if (requestId !== slotsRequestId) return;
       window.AppUtils.notify(info, err.message, true);
     }
   }

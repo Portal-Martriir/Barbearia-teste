@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const listUsuarios = document.getElementById('lista-usuarios');
   const usuarioSubtabButtons = document.querySelectorAll('[data-usuario-subtab]');
   const subtabInfo = document.getElementById('usuarios-subtab-info');
+  const usuariosFiltroBusca = document.getElementById('usuarios-filtro-busca');
   const countClientes = document.getElementById('usuarios-count-clientes');
   const countBarbeiros = document.getElementById('usuarios-count-barbeiros');
   const countAdmin = document.getElementById('usuarios-count-admin');
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let usuarioSubtabAtiva = 'usuarios';
   let activeModal = null;
   let lastFocusedElement = null;
+  const loadedTabs = new Set();
 
   function setTab(tab) {
     tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.cadastroTab === tab));
@@ -46,12 +48,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     panelDespesas.classList.toggle('active', tab === 'despesas');
   }
 
+  function currentHashTab() {
+    const tab = window.location.hash.replace('#', '').trim();
+    return ['usuarios', 'servicos', 'despesas'].includes(tab) ? tab : 'usuarios';
+  }
+
+  async function applyHashTab(force = false) {
+    const tab = currentHashTab();
+    setTab(tab);
+    await ensureTabLoaded(tab, force);
+  }
+
+  async function ensureTabLoaded(tab, force = false) {
+    if (!force && loadedTabs.has(tab)) return;
+
+    if (tab === 'usuarios') {
+      await refreshUsuarios();
+    } else if (tab === 'servicos') {
+      await refreshServicos();
+    } else if (tab === 'despesas') {
+      await refreshCategoriasDespesa();
+    }
+
+    loadedTabs.add(tab);
+  }
+
   tabButtons.forEach((btn) => {
-    btn.addEventListener('click', () => setTab(btn.dataset.cadastroTab));
+    btn.addEventListener('click', async () => {
+      window.location.hash = btn.dataset.cadastroTab;
+      try {
+        await applyHashTab();
+      } catch (err) {
+        await showFeedback(err.message, true);
+      }
+    });
   });
 
   function parsePreco(v) {
     return Number(String(v).replace(',', '.'));
+  }
+
+  function safeText(value, fallback = '-') {
+    const text = String(value ?? '').trim();
+    return window.AppUtils.escapeHtml(text || fallback);
   }
 
   function formatBirthDate(value) {
@@ -174,11 +213,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         <input
           name="${field.name}"
           type="${field.type || 'text'}"
-          value="${String(field.value ?? '').replace(/"/g, '&quot;')}"
+          value="${window.AppUtils.escapeAttr(field.value ?? '')}"
           ${field.min !== undefined ? `min="${field.min}"` : ''}
           ${field.max !== undefined ? `max="${field.max}"` : ''}
           ${field.step !== undefined ? `step="${field.step}"` : ''}
-          ${field.placeholder ? `placeholder="${field.placeholder}"` : ''}
+          ${field.placeholder ? `placeholder="${window.AppUtils.escapeAttr(field.placeholder)}"` : ''}
         />
       </label>
     `).join('');
@@ -222,6 +261,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.addEventListener('click', () => setUsuarioSubtab(btn.dataset.usuarioSubtab));
   });
 
+  if (usuariosFiltroBusca) {
+    usuariosFiltroBusca.addEventListener('input', () => renderUsuarios());
+  }
+
   async function refreshCategoriasDespesa() {
     const { data, error } = await window.sb
       .from('categorias_despesa')
@@ -232,10 +275,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     listCategoriasDespesa.innerHTML = (data || []).map((d) => `
       <tr>
-        <td>${d.nome || '-'}</td>
+        <td>${safeText(d.nome)}</td>
         <td>
-          <button type="button" class="btn-secondary" data-action="editar-categoria-despesa" data-id="${d.id}" data-nome="${d.nome || ''}">Editar</button>
-          <button type="button" class="btn-danger" data-action="excluir-categoria-despesa" data-id="${d.id}">Excluir</button>
+          <button type="button" class="btn-secondary" data-action="editar-categoria-despesa" data-id="${window.AppUtils.escapeAttr(d.id)}" data-nome="${window.AppUtils.escapeAttr(d.nome || '')}">Editar</button>
+          <button type="button" class="btn-danger" data-action="excluir-categoria-despesa" data-id="${window.AppUtils.escapeAttr(d.id)}">Excluir</button>
         </td>
       </tr>
     `).join('');
@@ -251,12 +294,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     listServicos.innerHTML = (data || []).map((s) => `
       <tr>
-        <td>${s.nome || '-'}</td>
+        <td>${safeText(s.nome)}</td>
         <td>${window.AppUtils.formatMoney(s.preco || 0)}</td>
         <td>${s.duracao_minutos || 0} min</td>
         <td>
-          <button type="button" class="btn-secondary" data-action="editar-servico" data-id="${s.id}" data-nome="${s.nome || ''}" data-preco="${s.preco || 0}" data-duracao="${s.duracao_minutos || 0}">Editar</button>
-          <button type="button" class="btn-danger" data-action="excluir-servico" data-id="${s.id}">Excluir</button>
+          <button type="button" class="btn-secondary" data-action="editar-servico" data-id="${window.AppUtils.escapeAttr(s.id)}" data-nome="${window.AppUtils.escapeAttr(s.nome || '')}" data-preco="${window.AppUtils.escapeAttr(s.preco || 0)}" data-duracao="${window.AppUtils.escapeAttr(s.duracao_minutos || 0)}">Editar</button>
+          <button type="button" class="btn-danger" data-action="excluir-servico" data-id="${window.AppUtils.escapeAttr(s.id)}">Excluir</button>
         </td>
       </tr>
     `).join('');
@@ -276,68 +319,51 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (usuarioSubtabAtiva === 'barbeiros') rows = usuariosCache.filter((u) => u.perfil === 'barbeiro');
     if (usuarioSubtabAtiva === 'admin') rows = usuariosCache.filter((u) => u.perfil === 'admin');
 
+    const termoBusca = String(usuariosFiltroBusca?.value || '').trim().toLowerCase();
+    if (termoBusca) {
+      rows = rows.filter((u) => {
+        const nome = String(u.nome || '').toLowerCase();
+        const email = String(u.email || '').toLowerCase();
+        const telefone = String(u.telefone || '').toLowerCase();
+        return nome.includes(termoBusca) || email.includes(termoBusca) || telefone.includes(termoBusca);
+      });
+    }
+
     listUsuarios.innerHTML = rows.map((u) => `
       <tr>
-        <td>${u.nome || '-'}</td>
-        <td>${u.email || '-'}</td>
-        <td>${u.telefone || '-'}</td>
+        <td>${safeText(u.nome)}</td>
+        <td>${safeText(u.email)}</td>
+        <td>${safeText(u.telefone)}</td>
         <td>${formatBirthDate(u.data_nascimento)}</td>
-        <td>${u.perfil || '-'}</td>
+        <td>${safeText(u.perfil)}</td>
         <td>${u.perfil === 'barbeiro' ? `${Number(u.comissao_percentual || 0).toFixed(2)}%` : '-'}</td>
         <td>${u.ativo ? 'Sim' : 'Nao'}</td>
         <td>
           ${u.perfil === 'admin'
             ? `<div class="action-wrap">
-                <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${u.id}">Editar dados</button>
+                <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${window.AppUtils.escapeAttr(u.id)}">Editar dados</button>
                 <span class="muted">Administrador</span>
               </div>`
             : u.perfil === 'barbeiro'
               ? `<div class="action-wrap">
-                  <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${u.id}">Editar dados</button>
-                  <button type="button" class="btn-secondary" data-action="editar-comissao" data-id="${u.id}" data-nome="${u.nome || ''}" data-comissao="${Number(u.comissao_percentual || 0)}">Editar comissao</button>
-                  <button type="button" class="btn-danger" data-action="tornar-cliente" data-id="${u.id}" data-nome="${u.nome || ''}">Tornar cliente</button>
+                  <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${window.AppUtils.escapeAttr(u.id)}">Editar dados</button>
+                  <button type="button" class="btn-secondary" data-action="editar-comissao" data-id="${window.AppUtils.escapeAttr(u.id)}" data-nome="${window.AppUtils.escapeAttr(u.nome || '')}" data-comissao="${window.AppUtils.escapeAttr(Number(u.comissao_percentual || 0))}">Editar comissao</button>
+                  <button type="button" class="btn-danger" data-action="tornar-cliente" data-id="${window.AppUtils.escapeAttr(u.id)}" data-nome="${window.AppUtils.escapeAttr(u.nome || '')}">Tornar cliente</button>
                 </div>`
               : `<div class="action-wrap">
-                  <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${u.id}">Editar dados</button>
-                  <button type="button" class="btn-secondary" data-action="tornar-barbeiro" data-id="${u.id}" data-nome="${u.nome || ''}">Definir como barbeiro</button>
+                  <button type="button" class="btn-secondary" data-action="editar-usuario" data-id="${window.AppUtils.escapeAttr(u.id)}">Editar dados</button>
+                  <button type="button" class="btn-secondary" data-action="tornar-barbeiro" data-id="${window.AppUtils.escapeAttr(u.id)}" data-nome="${window.AppUtils.escapeAttr(u.nome || '')}">Definir como barbeiro</button>
                 </div>`}
         </td>
       </tr>
     `).join('');
   }
 
-  async function refresh() {
-    try {
-      const { data, error } = await window.sb
-        .from('usuarios')
-        .select('id, nome, email, telefone, data_nascimento, perfil, ativo')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      const usuarios = data || [];
-      const usuarioIds = usuarios.map((u) => u.id);
-
-      let barbeirosMap = new Map();
-      if (usuarioIds.length > 0) {
-        const { data: barbeirosData, error: barbeirosError } = await window.sb
-          .from('barbeiros')
-          .select('usuario_id, comissao_percentual')
-          .in('usuario_id', usuarioIds);
-        if (barbeirosError) throw barbeirosError;
-        barbeirosMap = new Map((barbeirosData || []).map((b) => [String(b.usuario_id), Number(b.comissao_percentual || 0)]));
-      }
-
-      usuariosCache = usuarios.map((u) => ({
-        ...u,
-        comissao_percentual: barbeirosMap.get(String(u.id)) ?? null
-      }));
-      renderUsuarios();
-
-      await refreshServicos();
-      await refreshCategoriasDespesa();
-    } catch (err) {
-      await showFeedback(err.message, true);
-    }
+  async function refreshUsuarios() {
+    const { data, error } = await window.sb.rpc('listar_usuarios_cadastro_admin');
+    if (error) throw error;
+    usuariosCache = data || [];
+    renderUsuarios();
   }
 
   modalForm.addEventListener('submit', (ev) => {
@@ -394,6 +420,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         validate: (values) => {
           if (!String(values.nome || '').trim()) return 'Nome invalido.';
           if (!String(values.email || '').trim()) return 'Email invalido.';
+          if (!String(values.telefone || '').trim()) return 'Telefone invalido.';
           if (String(values.dataNascimento || '').trim() && !normalizeDateInput(values.dataNascimento)) {
             return 'Data de nascimento invalida.';
           }
@@ -411,12 +438,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           p_usuario_id: usuario.id,
           p_nome: String(formValues.nome).trim(),
           p_email: String(formValues.email).trim(),
-          p_telefone: String(formValues.telefone || '').trim() || null,
+          p_telefone: String(formValues.telefone || '').trim(),
           p_data_nascimento: dataNascimento
         });
         if (error) throw error;
         await showFeedback('Usuario atualizado com sucesso.');
-        await refresh();
+        loadedTabs.delete('usuarios');
+        await ensureTabLoaded('usuarios', true);
       } catch (err) {
         await showFeedback(err.message, true);
       }
@@ -438,7 +466,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         if (error) throw error;
         await showFeedback('Usuario definido como cliente com sucesso.');
-        await refresh();
+        loadedTabs.delete('usuarios');
+        await ensureTabLoaded('usuarios', true);
       } catch (err) {
         await showFeedback(err.message, true);
       }
@@ -474,7 +503,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           .eq('usuario_id', btnEditComissao.dataset.id);
         if (error) throw error;
         await showFeedback('Comissao atualizada com sucesso.');
-        await refresh();
+        loadedTabs.delete('usuarios');
+        await ensureTabLoaded('usuarios', true);
       } catch (err) {
         await showFeedback(err.message, true);
       }
@@ -513,7 +543,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
 
       await showFeedback('Usuario definido como barbeiro com sucesso.');
-      await refresh();
+      loadedTabs.delete('usuarios');
+      await ensureTabLoaded('usuarios', true);
     } catch (err) {
       await showFeedback(err.message, true);
     }
@@ -692,5 +723,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   setUsuarioSubtab('usuarios');
-  await refresh();
+  window.addEventListener('hashchange', () => {
+    applyHashTab().catch((err) => showFeedback(err.message, true));
+  });
+  try {
+    if (!window.location.hash) {
+      window.location.hash = 'usuarios';
+    }
+    await applyHashTab(true);
+  } catch (err) {
+    await showFeedback(err.message, true);
+  }
 });
