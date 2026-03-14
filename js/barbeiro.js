@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         status,
         pagamento_pendente,
         cliente_id,
-        clientes!agendamentos_cliente_id_fkey(nome),
+        clientes!agendamentos_cliente_id_fkey(nome, telefone),
         servicos(nome),
         valor,
         motivo_cancelamento,
@@ -258,6 +258,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
   }
 
+  function telefoneCell(row) {
+    const telefone = String(row?.clientes?.telefone || '').trim();
+    const link = whatsappLink(row);
+    if (!telefone || !link) return '-';
+    return `<a class="btn-whatsapp" href="${window.AppUtils.escapeAttr(link)}" target="_blank" rel="noopener noreferrer">${window.AppUtils.escapeHtml(telefone)}</a>`;
+  }
+
   function renderResumoPeriodo(rows, comRows, proximosClientes) {
     if (!barbeiroId) {
       document.getElementById('card-atendimentos-hoje').textContent = '0';
@@ -295,12 +302,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     agendaBody.innerHTML = rows.length === 0
-      ? '<tr><td colspan="8">Sem agendamentos para o periodo selecionado.</td></tr>'
+      ? '<tr><td colspan="9">Sem agendamentos para o periodo selecionado.</td></tr>'
       : rows.map((r) => `
         <tr>
           <td>${window.AppUtils.formatDate(r.data)}</td>
           <td>${String(r.hora_inicio).slice(0, 5)} - ${String(r.hora_fim).slice(0, 5)}</td>
           <td>${r.clientes?.nome || '-'}</td>
+          <td>${telefoneCell(r)}</td>
           <td>${r.servicos?.nome || '-'}</td>
           <td><span class="badge ${r.status}">${r.status}</span></td>
           <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
