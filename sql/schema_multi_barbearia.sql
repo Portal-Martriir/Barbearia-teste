@@ -540,13 +540,14 @@ for each row execute function public.trg_sync_financeiro_agendamento();
 create or replace function public.listar_barbeiros_publico()
 returns table (
   id uuid,
-  nome text
+  nome text,
+  telefone text
 )
 language sql
 security definer
 set search_path = public
 as $$
-  select b.id, b.nome
+  select b.id, b.nome, coalesce(nullif(b.telefone, ''), u.telefone) as telefone
   from public.barbeiros b
   left join public.usuarios u on u.id = b.usuario_id
   where b.barbearia_id = public.fn_barbearia_publica_id()
@@ -931,6 +932,7 @@ create or replace function public.listar_meus_agendamentos()
 returns table (
   id uuid,
   barbeiro text,
+  barbeiro_telefone text,
   servico text,
   data date,
   hora_inicio time,
@@ -946,6 +948,7 @@ as $$
   select
     a.id,
     b.nome as barbeiro,
+    coalesce(nullif(b.telefone, ''), ub.telefone) as barbeiro_telefone,
     s.nome as servico,
     a.data,
     a.hora_inicio,
@@ -959,6 +962,7 @@ as $$
   from public.agendamentos a
   join public.clientes c on c.id = a.cliente_id
   join public.barbeiros b on b.id = a.barbeiro_id
+  left join public.usuarios ub on ub.id = b.usuario_id
   join public.servicos s on s.id = a.servico_id
   where c.usuario_id = auth.uid()
   order by a.data desc, a.hora_inicio desc;
@@ -1014,6 +1018,7 @@ create or replace function public.listar_clientes_agendamento_barbeiro(
 returns table (
   id uuid,
   nome text,
+  email text,
   telefone text
 )
 language sql
@@ -1023,6 +1028,7 @@ as $$
   select
     u.id,
     coalesce(c.nome, u.nome) as nome,
+    u.email,
     coalesce(nullif(c.telefone, ''), nullif(u.telefone, '')) as telefone
   from public.usuarios u
   left join public.clientes c on c.usuario_id = u.id
