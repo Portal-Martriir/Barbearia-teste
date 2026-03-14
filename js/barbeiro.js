@@ -16,8 +16,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const filtrosPanel = document.getElementById('barbeiro-filtros-panel');
   const quickPeriodButtons = document.querySelectorAll('[data-barbeiro-quick-period]');
   const agendaBody = document.getElementById('lista-agenda-barbeiro');
+  const modalRoot = document.getElementById('barbeiro-modal-root');
+  const modalBackdrop = document.getElementById('barbeiro-modal-backdrop');
+  const modalClose = document.getElementById('barbeiro-modal-close');
+  const modalForm = document.getElementById('barbeiro-modal-form');
+  const modalTitle = document.getElementById('barbeiro-modal-title');
+  const modalMessage = document.getElementById('barbeiro-modal-message');
+  const modalMotivo = document.getElementById('barbeiro-modal-motivo');
+  const modalError = document.getElementById('barbeiro-modal-error');
+  const modalCancel = document.getElementById('barbeiro-modal-cancel');
+  const modalConfirm = document.getElementById('barbeiro-modal-confirm');
 
-  if (!periodoSelect || !agendaDataInicioInput || !agendaDataFimInput || !aplicarFiltroBtn || !agendaBody) {
+  if (!periodoSelect || !agendaDataInicioInput || !agendaDataFimInput || !aplicarFiltroBtn || !agendaBody || !modalRoot || !modalBackdrop || !modalClose || !modalForm || !modalTitle || !modalMessage || !modalMotivo || !modalError || !modalCancel || !modalConfirm) {
     window.AppUtils.notify(info, 'Elementos obrigatorios do painel nao foram encontrados.', true);
     return;
   }
@@ -25,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hojeISO = window.AppUtils.todayISO();
   agendaDataInicioInput.value = hojeISO;
   agendaDataFimInput.value = hojeISO;
+  let activeModalResolver = null;
 
   function toDateOnly(value) {
     return new Date(`${value}T00:00:00`);
@@ -45,6 +56,35 @@ document.addEventListener('DOMContentLoaded', async () => {
   function setFilterPanelState(open) {
     if (!filtrosPanel) return;
     filtrosPanel.classList.toggle('is-open', open);
+  }
+
+  function closeActionModal(result = null) {
+    if (!activeModalResolver) return;
+    const resolve = activeModalResolver;
+    activeModalResolver = null;
+    modalRoot.hidden = true;
+    modalRoot.setAttribute('aria-hidden', 'true');
+    modalMotivo.value = '';
+    modalError.hidden = true;
+    modalError.textContent = '';
+    resolve(result);
+  }
+
+  function openReasonModal({ title, message, confirmText, placeholder }) {
+    modalTitle.textContent = title;
+    modalMessage.textContent = message;
+    modalConfirm.textContent = confirmText;
+    modalMotivo.placeholder = placeholder || 'Descreva o motivo';
+    modalMotivo.value = '';
+    modalError.hidden = true;
+    modalError.textContent = '';
+    modalRoot.hidden = false;
+    modalRoot.setAttribute('aria-hidden', 'false');
+
+    return new Promise((resolve) => {
+      activeModalResolver = resolve;
+      setTimeout(() => modalMotivo.focus(), 0);
+    });
   }
 
   function syncQuickPeriodButtons() {
@@ -176,8 +216,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return data || [];
   }
 
-  async function loadProximoCliente(barbeiroId) {
-    if (!barbeiroId) return null;
+  async function loadProximosClientes(barbeiroId) {
+    if (!barbeiroId) return [];
 
     const agora = new Date();
     const hoje = window.AppUtils.todayISO();
@@ -195,11 +235,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       .or(`data.gt.${hoje},and(data.eq.${hoje},hora_inicio.gte.${horaAtual})`)
       .order('data', { ascending: true })
       .order('hora_inicio', { ascending: true })
-      .limit(1)
-      .maybeSingle();
+      .limit(3);
 
     if (error) throw error;
-    return data || null;
+    return data || [];
   }
 
   function normalizePhone(value) {
@@ -215,20 +254,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nome = String(cliente?.clientes?.nome || 'cliente').trim();
     const data = window.AppUtils.formatDate(cliente?.data);
     const hora = String(cliente?.hora_inicio || '').slice(0, 5);
-    const mensagem = `Ola, ${nome}. Aqui e da DomLucasBarberShop. Confirma seu atendimento em ${data} as ${hora}?`;
+    const mensagem = `Ola, ${nome}. Aqui e da Barberia D'sousa. Confirma seu atendimento em ${data} as ${hora}?`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
   }
 
-  function renderResumoPeriodo(rows, comRows, proximoCliente) {
+  function renderResumoPeriodo(rows, comRows, proximosClientes) {
     if (!barbeiroId) {
       document.getElementById('card-atendimentos-hoje').textContent = '0';
       document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(0);
       document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(0);
-      document.getElementById('card-proximos-clientes').textContent = 'Sem proximo cliente.';
+      document.getElementById('card-proximos-clientes').textContent = 'Sem proximos clientes.';
       return;
     }
 
-    const agora = new Date();
     const atendimentos = rows.filter((r) => !['cancelado', 'desistencia_cliente'].includes(r.status)).length;
     const faturado = rows
       .filter((r) => r.status === 'concluido')
@@ -238,14 +276,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('card-atendimentos-hoje').textContent = String(atendimentos);
     document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(faturado);
     document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(comissao);
-    document.getElementById('card-proximos-clientes').innerHTML = !proximoCliente
-      ? 'Sem proximo cliente.'
-      : `
-        ${window.AppUtils.formatDate(proximoCliente.data)} ${String(proximoCliente.hora_inicio).slice(0, 5)} - ${proximoCliente.clientes?.nome || '-'}
-        ${whatsappLink(proximoCliente)
-          ? `<div class="section-space-top"><a class="btn-whatsapp" href="${window.AppUtils.escapeAttr(whatsappLink(proximoCliente))}" target="_blank" rel="noopener noreferrer">WhatsApp</a></div>`
-          : ''}
-      `;
+    document.getElementById('card-proximos-clientes').innerHTML = !proximosClientes?.length
+      ? 'Sem proximos clientes.'
+      : proximosClientes.map((cliente) => `
+        <div class="section-space-top">
+          <strong>${window.AppUtils.formatDate(cliente.data)} ${String(cliente.hora_inicio).slice(0, 5)}</strong> - ${cliente.clientes?.nome || '-'}
+          ${whatsappLink(cliente)
+            ? `<div class="section-space-top"><a class="btn-whatsapp" href="${window.AppUtils.escapeAttr(whatsappLink(cliente))}" target="_blank" rel="noopener noreferrer">WhatsApp</a></div>`
+            : ''}
+        </div>
+      `).join('');
   }
 
   function renderAgendaPeriodo(rows) {
@@ -324,13 +364,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function refreshAll(barbeiroId) {
-    const [rows, comRows, proximoCliente] = await Promise.all([
+    const [rows, comRows, proximosClientes] = await Promise.all([
       loadAgendamentosPeriodo(barbeiroId),
       loadComissoesPeriodo(barbeiroId),
-      loadProximoCliente(barbeiroId)
+      loadProximosClientes(barbeiroId)
     ]);
 
-    renderResumoPeriodo(rows, comRows, proximoCliente);
+    renderResumoPeriodo(rows, comRows, proximosClientes);
     renderAgendaPeriodo(rows);
   }
 
@@ -374,6 +414,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  modalBackdrop.addEventListener('click', () => closeActionModal(null));
+  modalClose.addEventListener('click', () => closeActionModal(null));
+  modalCancel.addEventListener('click', () => closeActionModal(null));
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && !modalRoot.hidden) {
+      closeActionModal(null);
+    }
+  });
+
+  modalForm.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const motivo = String(modalMotivo.value || '').trim();
+    if (!motivo) {
+      modalError.textContent = 'Informe o motivo para continuar.';
+      modalError.hidden = false;
+      modalMotivo.focus();
+      return;
+    }
+    closeActionModal(motivo);
+  });
+
   agendaBody.addEventListener('click', async (ev) => {
     const btn = ev.target.closest('button[data-action][data-id]');
     if (!btn) return;
@@ -383,27 +444,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
       if (action === 'cancelar') {
-        const ok = window.confirm('Confirma cancelamento deste atendimento?');
-        if (!ok) return;
-
-        const motivo = window.prompt('Informe o motivo do cancelamento:');
+        const motivo = await openReasonModal({
+          title: 'Cancelar atendimento',
+          message: 'Informe o motivo do cancelamento deste atendimento.',
+          confirmText: 'Cancelar atendimento',
+          placeholder: 'Ex.: cliente pediu cancelamento, imprevisto no horario...'
+        });
         if (motivo === null) return;
-        if (!motivo.trim()) {
-          throw new Error('Informe o motivo do cancelamento.');
-        }
 
-        await updateStatusWithValidation(id, 'cancelado', motivo.trim());
+        await updateStatusWithValidation(id, 'cancelado', motivo);
       } else if (action === 'desistencia') {
-        const ok = window.confirm('Confirma marcar como desistencia do cliente?');
-        if (!ok) return;
-
-        const motivo = window.prompt('Informe o motivo da desistencia:');
+        const motivo = await openReasonModal({
+          title: 'Registrar desistencia',
+          message: 'Informe o motivo da desistencia do cliente.',
+          confirmText: 'Registrar desistencia',
+          placeholder: 'Ex.: cliente nao compareceu, desistiu em cima da hora...'
+        });
         if (motivo === null) return;
-        if (!motivo.trim()) {
-          throw new Error('Informe o motivo da desistencia.');
-        }
 
-        await updateStatusWithValidation(id, 'desistencia_cliente', motivo.trim());
+        await updateStatusWithValidation(id, 'desistencia_cliente', motivo);
       }
 
       await refreshAll(barbeiroId);

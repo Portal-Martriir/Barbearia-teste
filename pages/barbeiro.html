@@ -6,16 +6,16 @@
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
   <script src="../js/security.js"></script>
-  <title>Painel do Barbeiro | DomLucasBarberShop</title>
+  <title>Painel do Barbeiro | Barberia D'sousa</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body class="app-page">
   <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
 
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
       <div class="sidebar-card">
-        <span class="brand">DomLucasBarberShop</span>
+        <span class="brand">Barberia D'sousa</span>
         <nav class="nav">
           <a href="./dashboard.html" data-admin-only>Dashboard</a>
           <a href="./cadastro.html" data-admin-only>Cadastros</a>
@@ -37,8 +37,8 @@
     <div class="content-area">
       <header class="topbar">
         <div class="topbar-inner">
-          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
-          <span class="brand">DomLucasBarberShop</span>
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">Barberia D'sousa</span>
           <div>
             <span data-user-name></span>
             <button data-logout class="btn-secondary">Sair</button>
@@ -51,13 +51,13 @@
         <p id="barbeiro-info" class="muted"></p>
 
         <section class="grid">
+          <article class="card">
+            <h3>Proximos clientes</h3>
+            <div id="card-proximos-clientes" class="muted">Sem proximos clientes.</div>
+          </article>
           <article class="card"><h3>Atendimentos no periodo</h3><div id="card-atendimentos-hoje" class="value">0</div></article>
           <article class="card"><h3>Faturado no periodo</h3><div id="card-faturado-hoje" class="value">R$ 0,00</div></article>
           <article class="card"><h3>Comissao no periodo</h3><div id="card-comissao-hoje" class="value">R$ 0,00</div></article>
-          <article class="card">
-            <h3>Proximo cliente</h3>
-            <div id="card-proximos-clientes" class="muted">Sem proximo cliente.</div>
-          </article>
         </section>
 
         <section class="card">
@@ -117,6 +117,29 @@
     </div>
   </div>
 
+  <div id="barbeiro-modal-root" class="app-modal-root" hidden aria-hidden="true">
+    <button id="barbeiro-modal-backdrop" class="app-modal-backdrop" type="button" aria-label="Fechar modal"></button>
+    <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="barbeiro-modal-title" aria-describedby="barbeiro-modal-message">
+      <button id="barbeiro-modal-close" type="button" class="app-modal-close" aria-label="Fechar modal">&times;</button>
+      <div class="app-modal-header">
+        <h3 id="barbeiro-modal-title">Atualizar agendamento</h3>
+        <p id="barbeiro-modal-message" class="muted"></p>
+      </div>
+      <form id="barbeiro-modal-form" class="app-modal-form">
+        <div class="app-modal-fields">
+          <label>Motivo
+            <textarea id="barbeiro-modal-motivo" rows="4" placeholder="Descreva o motivo"></textarea>
+          </label>
+        </div>
+        <p id="barbeiro-modal-error" class="error" hidden></p>
+        <div class="app-modal-actions">
+          <button id="barbeiro-modal-cancel" type="button" class="btn-secondary">Voltar</button>
+          <button id="barbeiro-modal-confirm" type="submit" class="btn-primary">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/config.js"></script>
   <script src="../js/supabaseClient.js"></script>
@@ -127,4 +150,3 @@
   <script src="../js/barbeiro.js"></script>
 </body>
 </html>
-

@@ -22,6 +22,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let srSelectedDate = new Date();
   let srViewMonth = new Date(srSelectedDate.getFullYear(), srSelectedDate.getMonth(), 1);
   let quickSlotsRequestId = 0;
+  let barbeirosCache = [];
+  let agendaConfig = {
+    whatsapp_confirmacao_obrigatoria: true
+  };
 
   function isoDate(date) {
     return window.AppUtils.dateToISO(date);
@@ -33,6 +37,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function formatMonth(date) {
     return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  }
+
+  function normalizePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('55')) return digits;
+    return `55${digits}`;
+  }
+
+  function buildWhatsappLink(agendamento) {
+    const barbeiro = barbeirosCache.find((item) => item.id === agendamento.barbeiroId);
+    const phone = normalizePhone(barbeiro?.telefone);
+    if (!phone || !agendamento.data || !agendamento.hora) return '';
+
+    const barbeiroNome = String(barbeiro?.nome || 'barbeiro').trim();
+    const servicoNome = String(agendamento.servicoNome || 'servico').trim();
+    const mensagem = `Ola, ${barbeiroNome}. Acabei de agendar ${servicoNome} para o dia ${window.AppUtils.formatDate(agendamento.data)} as ${agendamento.hora}. Meu nome e ${agendamento.clienteNome}.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
+  }
+
+  function showWhatsappCallout(agendamento) {
+    const link = buildWhatsappLink(agendamento);
+    const barbeiro = barbeirosCache.find((item) => item.id === agendamento.barbeiroId);
+    const obrigatorio = agendaConfig.whatsapp_confirmacao_obrigatoria !== false;
+
+    if (!link) {
+      window.AppUtils.notify(agendarInfo, 'Agendamento criado, mas o barbeiro esta sem telefone para WhatsApp cadastrado.', true);
+      return;
+    }
+
+    agendarInfo.className = 'muted auth-status';
+    agendarInfo.textContent = '';
+
+    window.AppUtils.notify(
+      null,
+      obrigatorio
+        ? `Horario agendado com sucesso. E obrigatorio enviar a mensagem para ${barbeiro?.nome || 'o barbeiro'} no WhatsApp para confirmar o atendimento.`
+        : `Horario agendado com sucesso. Se quiser, voce pode avisar ${barbeiro?.nome || 'o barbeiro'} no WhatsApp para agilizar a confirmacao do atendimento.`,
+      false,
+      {
+        title: 'Horario agendado com sucesso',
+        action: {
+          label: obrigatorio ? 'Mensagem obrigatoria no WhatsApp' : 'Avisar no WhatsApp',
+          href: link
+        }
+      }
+    );
+  }
+
+  async function loadAgendaConfig() {
+    const { data, error } = await window.sb.rpc('obter_configuracao_agenda_publica');
+    if (error) throw error;
+
+    agendaConfig = data?.[0] || {
+      whatsapp_confirmacao_obrigatoria: true
+    };
   }
 
   function renderAgendarCalendar() {
@@ -151,7 +211,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (barbeirosRes.error) throw barbeirosRes.error;
     if (servicosRes.error) throw servicosRes.error;
 
-    renderOptions(srBarbeiro, barbeirosRes.data || [], (b) => b.nome);
+    barbeirosCache = barbeirosRes.data || [];
+    renderOptions(srBarbeiro, barbeirosCache, (b) => b.nome);
     renderOptions(srServico, servicosRes.data || [], (s) => `${s.nome} - ${window.AppUtils.formatMoney(s.preco)} (${s.duracao_minutos}m)`);
     await loadQuickSlots();
   }
@@ -287,6 +348,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
+      const agendamentoCriado = {
+        clienteNome: nome,
+        barbeiroId,
+        servicoNome: srServico.options[srServico.selectedIndex]?.textContent?.trim().split(' - ')[0] || 'servico',
+        data: srDataInput.value,
+        hora: srHoraInput.value
+      };
       const { error } = await window.sb.rpc('criar_agendamento_publico', {
         p_cliente_id: null,
         p_nome: nome,
@@ -308,7 +376,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       srHorarioSelecionado.textContent = 'Selecione um horario para confirmar.';
       renderAgendarCalendar();
       await loadQuickSlots();
-      window.AppUtils.notify(agendarInfo, 'Agendamento criado com sucesso.');
+      showWhatsappCallout(agendamentoCriado);
     } catch (err) {
       window.AppUtils.notify(agendarInfo, err.message, true);
     }
@@ -321,6 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     srDataInput.value = isoDate(srSelectedDate);
     srDataLabel.textContent = window.AppUtils.formatDate(srDataInput.value);
     renderAgendarCalendar();
+    await loadAgendaConfig();
     await loadAgendamentoOptions();
   } catch (err) {
     window.AppUtils.notify(agendarInfo, err.message, true);

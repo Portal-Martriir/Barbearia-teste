@@ -4,16 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
-  <title>Novo Agendamento | DomLucasBarberShop</title>
+  <title>Novo Agendamento | Barberia D'sousa</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body class="app-page">
   <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
 
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
       <div class="sidebar-card">
-        <span class="brand">DomLucasBarberShop</span>
+        <span class="brand">Barberia D'sousa</span>
         <nav class="nav">
           <a href="./cliente.html">Dashboard Cliente</a>
           <a href="./cliente-agendamento.html">Agendar novo horario</a>
@@ -29,8 +29,8 @@
     <div class="content-area">
       <header class="topbar">
         <div class="topbar-inner">
-          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
-          <span class="brand">DomLucasBarberShop</span>
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">Barberia D'sousa</span>
           <div>
             <span data-user-name>Cliente</span>
             <button data-logout class="btn-secondary">Sair</button>
@@ -41,12 +41,12 @@
       <main class="container booking-container">
         <section class="card booking-hero">
           <h1>Novo Agendamento</h1>
-          <p class="muted">Selecione servico, barbeiro, data e horario disponivel.</p>
+          <p class="muted">Selecione serviço, barbeiro, data e horário disponível.</p>
         </section>
 
         <section class="card">
           <form id="form-agendar-cliente" class="form-row">
-            <label>Servico
+            <label>Serviço
               <select id="cliente-servico" required></select>
             </label>
             <label>Barbeiro
@@ -56,9 +56,9 @@
 
           <div class="calendar-card">
             <div class="rowBetween">
-              <button id="btn-cal-prev" type="button" class="btn-secondary">Mes anterior</button>
-              <strong id="cal-title">Calendario</strong>
-              <button id="btn-cal-next" type="button" class="btn-secondary">Proximo mes</button>
+              <button id="btn-cal-prev" type="button" class="btn-secondary">Mês anterior</button>
+              <strong id="cal-title">Calendário</strong>
+              <button id="btn-cal-next" type="button" class="btn-secondary">Próximo mês</button>
             </div>
             <div class="calendar-weekdays">
               <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
@@ -69,13 +69,14 @@
           <p class="muted">Data selecionada: <strong id="cliente-data-label">-</strong></p>
           <input id="cliente-data" type="hidden" />
 
-          <p class="muted">Horarios disponiveis</p>
+          <p class="muted">Horários disponíveis</p>
           <div id="cliente-slots" class="slots-grid"></div>
 
           <div class="rowBetween">
-            <p id="cliente-horario-selecionado" class="muted">Selecione um horario para confirmar.</p>
+            <p id="cliente-horario-selecionado" class="muted">Selecione um horário para confirmar.</p>
             <button id="btn-confirmar-agendamento" type="button" class="btn-primary">Confirmar agendamento</button>
           </div>
+
           <p id="cliente-agendamento-info" class="muted"></p>
         </section>
       </main>

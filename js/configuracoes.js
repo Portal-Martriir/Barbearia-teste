@@ -13,6 +13,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const semanaRefInput = document.getElementById('cfg-semana-ref');
   const horariosBody = document.getElementById('cfg-barbeiro-horarios-body');
   const btnSalvarBarbeiro = document.getElementById('btn-salvar-horarios-barbeiro');
+  const whatsappInfo = document.getElementById('cfg-whatsapp-info');
+  const whatsappObrigatorioInput = document.getElementById('cfg-whatsapp-obrigatorio');
+  const whatsappObrigatorioLabel = document.getElementById('cfg-whatsapp-obrigatorio-label');
+  const btnSalvarWhatsapp = document.getElementById('btn-salvar-config-whatsapp');
 
   const passwordInfo = document.getElementById('cfg-password-info');
   const userSearchInput = document.getElementById('cfg-user-search');
@@ -47,6 +51,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let usuariosCache = [];
   let selectedUserId = null;
+
+  function updateWhatsappToggleLabel() {
+    if (!whatsappObrigatorioLabel || !whatsappObrigatorioInput) return;
+    whatsappObrigatorioLabel.textContent = whatsappObrigatorioInput.checked ? 'Obrigatorio' : 'Opcional';
+  }
+
+  async function loadAgendaConfig() {
+    const { data, error } = await window.sb
+      .from('configuracao_agenda')
+      .select('id, whatsapp_confirmacao_obrigatoria')
+      .eq('id', 1)
+      .maybeSingle();
+    if (error) throw error;
+
+    whatsappObrigatorioInput.checked = data?.whatsapp_confirmacao_obrigatoria !== false;
+    updateWhatsappToggleLabel();
+  }
+
+  async function saveWhatsappConfig() {
+    try {
+      btnSalvarWhatsapp.disabled = true;
+
+      const { error } = await window.sb
+        .from('configuracao_agenda')
+        .upsert({
+          id: 1,
+          whatsapp_confirmacao_obrigatoria: whatsappObrigatorioInput.checked
+        }, { onConflict: 'id' });
+      if (error) throw error;
+
+      updateWhatsappToggleLabel();
+      window.AppUtils.notify(whatsappInfo, 'Configuracao do WhatsApp salva com sucesso.');
+    } catch (err) {
+      window.AppUtils.notify(whatsappInfo, err.message, true);
+    } finally {
+      btnSalvarWhatsapp.disabled = false;
+    }
+  }
 
   function openUserModal() {
     userModalRoot.hidden = false;
@@ -354,6 +396,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  whatsappObrigatorioInput?.addEventListener('change', updateWhatsappToggleLabel);
+  btnSalvarWhatsapp?.addEventListener('click', saveWhatsappConfig);
+
   userSearchInput.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') {
       ev.preventDefault();
@@ -420,6 +465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     applyHashTab();
     semanaRefInput.value = isoDate(new Date());
+    await loadAgendaConfig();
     await Promise.all([
       loadBarbeiros(),
       loadUsuariosSenha()

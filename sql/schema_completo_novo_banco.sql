@@ -25,6 +25,8 @@ drop function if exists public.admin_atualizar_usuario_cadastro(uuid, text, text
 drop function if exists public.admin_definir_senha_usuario(uuid, text) cascade;
 drop function if exists public.garantir_admin_como_barbeiro() cascade;
 drop function if exists public.listar_usuarios_cadastro_admin() cascade;
+drop function if exists public.listar_clientes_agendamento_barbeiro(text) cascade;
+drop function if exists public.criar_agendamento_manual_barbeiro(uuid, uuid, uuid, date, time) cascade;
 drop function if exists public.dashboard_admin_resumo(date, date) cascade;
 
 drop table if exists public.financeiro cascade;
@@ -122,6 +124,7 @@ create table public.configuracao_agenda (
   hora_abertura time not null default '09:00',
   hora_fechamento time not null default '19:00',
   intervalo_minutos integer not null default 30 check (intervalo_minutos > 0 and intervalo_minutos <= 120),
+  whatsapp_confirmacao_obrigatoria boolean not null default true,
   updated_at timestamptz not null default now()
 );
 
@@ -156,10 +159,13 @@ create table public.agendamentos (
   data date not null,
   hora_inicio time not null,
   hora_fim time not null,
-  status text not null default 'agendado' check (status in ('agendado','em_atendimento','concluido','cancelado')),
+  status text not null default 'agendado' check (status in ('agendado','em_atendimento','concluido','cancelado','desistencia_cliente')),
   pagamento_status text not null default 'pendente' check (pagamento_status in ('pago','pendente')),
   pagamento_pendente boolean not null default true,
   valor numeric(12,2) not null default 0,
+  motivo_cancelamento text,
+  cancelado_em timestamptz,
+  cancelado_por uuid references public.usuarios(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
@@ -227,7 +233,7 @@ create table public.comissoes (
 
 create index idx_agendamentos_data on public.agendamentos(data);
 create index idx_agendamentos_barbeiro_data on public.agendamentos(barbeiro_id, data);
-create index idx_agendamentos_barbeiro_data_hora_ativos on public.agendamentos(barbeiro_id, data, hora_inicio, hora_fim) where status <> 'cancelado';
+create index idx_agendamentos_barbeiro_data_hora_ativos on public.agendamentos(barbeiro_id, data, hora_inicio, hora_fim) where status not in ('cancelado', 'desistencia_cliente');
 create index idx_agendamentos_cliente_data on public.agendamentos(cliente_id, data);
 create index idx_agendamentos_status_data on public.agendamentos(status, data);
 create index idx_financeiro_data on public.financeiro(data);
@@ -321,7 +327,7 @@ begin
     from public.agendamentos a
     where a.barbeiro_id = new.barbeiro_id
       and a.data = new.data
-      and a.status <> 'cancelado'
+      and a.status not in ('cancelado', 'desistencia_cliente')
       and a.id <> coalesce(new.id, '00000000-0000-0000-0000-000000000000'::uuid)
       and (new.hora_inicio < a.hora_fim and new.hora_fim > a.hora_inicio)
   ) then
@@ -424,7 +430,7 @@ end;
 $$;
 
 create trigger trg_agendamento_status_change
-after update of status, pagamento_status
+after update of status, pagamento_status, pagamento_pendente
 on public.agendamentos
 for each row
 execute function public.processar_conclusao_agendamento();
@@ -760,8 +766,8 @@ values
   ('Corte + Barba', 55, 70)
 on conflict (nome) do nothing;
 
-insert into public.configuracao_agenda (id, hora_abertura, hora_fechamento, intervalo_minutos)
-values (1, '09:00', '19:00', 30)
+insert into public.configuracao_agenda (id, hora_abertura, hora_fechamento, intervalo_minutos, whatsapp_confirmacao_obrigatoria)
+values (1, '09:00', '19:00', 30, true)
 on conflict (id) do nothing;
 
 -- IMPORTANTE:
@@ -930,11 +936,161 @@ begin
 end;
 $$;
 
+create or replace function public.listar_clientes_agendamento_barbeiro(
+  p_busca text default null
+)
+returns table (
+  id uuid,
+  nome text,
+  email text,
+  telefone text
+)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_busca text;
+begin
+  if not public.fn_is_barbeiro() then
+    raise exception 'Apenas barbeiro pode listar clientes para agendamento manual';
+  end if;
+
+  v_busca := nullif(trim(coalesce(p_busca, '')), '');
+
+  return query
+  select
+    u.id,
+    u.nome,
+    u.email,
+    coalesce(nullif(trim(coalesce(u.telefone, '')), ''), c.telefone) as telefone
+  from public.usuarios u
+  left join public.clientes c on c.id = u.id
+  where u.ativo = true
+    and u.perfil = 'cliente'
+    and (
+      v_busca is null
+      or lower(coalesce(u.nome, '')) like '%' || lower(v_busca) || '%'
+      or lower(coalesce(u.email, '')) like '%' || lower(v_busca) || '%'
+      or lower(coalesce(u.telefone, '')) like '%' || lower(v_busca) || '%'
+      or lower(coalesce(c.telefone, '')) like '%' || lower(v_busca) || '%'
+    )
+  order by u.nome asc, u.created_at desc
+  limit 50;
+end;
+$$;
+
+create or replace function public.criar_agendamento_manual_barbeiro(
+  p_usuario_id uuid,
+  p_barbeiro_id uuid,
+  p_servico_id uuid,
+  p_data date,
+  p_hora_inicio time
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_auth_user_id uuid;
+  v_usuario public.usuarios%rowtype;
+  v_cliente_id uuid;
+  v_agendamento_id uuid;
+begin
+  if not public.fn_is_barbeiro() then
+    raise exception 'Apenas barbeiro pode criar agendamento manual';
+  end if;
+
+  v_auth_user_id := auth.uid();
+  if v_auth_user_id is null then
+    raise exception 'Usuario nao autenticado';
+  end if;
+
+  if p_usuario_id is null then
+    raise exception 'Usuario do cliente e obrigatorio';
+  end if;
+  if p_barbeiro_id is null then
+    raise exception 'Barbeiro e obrigatorio';
+  end if;
+  if p_servico_id is null then
+    raise exception 'Servico e obrigatorio';
+  end if;
+  if p_data is null then
+    raise exception 'Data e obrigatoria';
+  end if;
+  if p_hora_inicio is null then
+    raise exception 'Hora de inicio e obrigatoria';
+  end if;
+  if p_data < current_date then
+    raise exception 'Nao e permitido agendar em data passada';
+  end if;
+
+  if not exists (
+    select 1
+    from public.barbeiros b
+    where b.id = p_barbeiro_id
+      and b.usuario_id = v_auth_user_id
+  ) then
+    raise exception 'Barbeiro informado nao pertence ao usuario autenticado';
+  end if;
+
+  select *
+  into v_usuario
+  from public.usuarios u
+  where u.id = p_usuario_id
+    and u.ativo = true
+    and u.perfil = 'cliente';
+
+  if not found then
+    raise exception 'Selecione um usuario cliente existente e ativo';
+  end if;
+
+  insert into public.clientes (id, nome, telefone, observacao)
+  values (
+    v_usuario.id,
+    v_usuario.nome,
+    nullif(trim(coalesce(v_usuario.telefone, '')), ''),
+    'Vinculado via agendamento manual do barbeiro'
+  )
+  on conflict (id) do update
+    set nome = excluded.nome,
+        telefone = coalesce(excluded.telefone, public.clientes.telefone)
+  returning id into v_cliente_id;
+
+  insert into public.agendamentos (
+    cliente_id,
+    barbeiro_id,
+    servico_id,
+    data,
+    hora_inicio,
+    status,
+    pagamento_status,
+    pagamento_pendente
+  )
+  values (
+    v_cliente_id,
+    p_barbeiro_id,
+    p_servico_id,
+    p_data,
+    p_hora_inicio,
+    'agendado',
+    'pago',
+    false
+  )
+  returning id into v_agendamento_id;
+
+  return v_agendamento_id;
+end;
+$$;
+
 grant execute on function public.listar_barbeiros_publico() to anon, authenticated;
 grant execute on function public.listar_servicos_publico() to anon, authenticated;
 grant execute on function public.buscar_cliente_por_telefone_publico(text) to anon, authenticated;
 grant execute on function public.cadastrar_cliente_publico(text, text, text) to anon, authenticated;
 grant execute on function public.criar_agendamento_publico(uuid, text, text, uuid, uuid, date, time, boolean) to anon, authenticated;
+grant execute on function public.listar_clientes_agendamento_barbeiro(text) to authenticated;
+grant execute on function public.criar_agendamento_manual_barbeiro(uuid, uuid, uuid, date, time) to authenticated;
 
 create or replace function public.garantir_cliente_auth(
   p_nome text default null,
@@ -1516,13 +1672,14 @@ create or replace function public.obter_configuracao_agenda_publica()
 returns table (
   hora_abertura time,
   hora_fechamento time,
-  intervalo_minutos integer
+  intervalo_minutos integer,
+  whatsapp_confirmacao_obrigatoria boolean
 )
 language sql
 security definer
 set search_path = public
 as $$
-  select c.hora_abertura, c.hora_fechamento, c.intervalo_minutos
+  select c.hora_abertura, c.hora_fechamento, c.intervalo_minutos, c.whatsapp_confirmacao_obrigatoria
   from public.configuracao_agenda c
   where c.id = 1;
 $$;

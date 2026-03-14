@@ -8,8 +8,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const barbeiroSelect = document.getElementById('cliente-barbeiro');
   const calTitle = document.getElementById('cal-title');
   const calGrid = document.getElementById('calendar-grid');
+  const confirmBtn = document.getElementById('btn-confirmar-agendamento');
 
-  if (!info || !slotsEl || !selectedEl || !dataInput || !dataLabel || !servicoSelect || !barbeiroSelect || !calTitle || !calGrid) {
+  if (!info || !slotsEl || !selectedEl || !dataInput || !dataLabel || !servicoSelect || !barbeiroSelect || !calTitle || !calGrid || !confirmBtn) {
     return;
   }
 
@@ -18,6 +19,71 @@ document.addEventListener('DOMContentLoaded', async () => {
   let selectedDate = null;
   let selectedSlot = null;
   let slotsRequestId = 0;
+  let barbeirosCache = [];
+  let clienteNome = 'Cliente';
+  let agendaConfig = {
+    whatsapp_confirmacao_obrigatoria: true
+  };
+
+  function normalizePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('55')) return digits;
+    return `55${digits}`;
+  }
+
+  function getSelectedOptionText(selectEl) {
+    return selectEl.options[selectEl.selectedIndex]?.textContent?.trim() || '';
+  }
+
+  function buildWhatsappLink() {
+    const barbeiro = barbeirosCache.find((item) => item.id === barbeiroSelect.value);
+    const phone = normalizePhone(barbeiro?.telefone);
+    if (!phone || !dataInput.value || !selectedSlot) return '';
+
+    const barbeiroNome = String(barbeiro?.nome || 'barbeiro').trim();
+    const servicoNome = getSelectedOptionText(servicoSelect).split(' - ')[0] || 'servico';
+    const mensagem = `Ola, ${barbeiroNome}. Acabei de agendar ${servicoNome} para o dia ${window.AppUtils.formatDate(dataInput.value)} as ${selectedSlot}. Meu nome e ${clienteNome}.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
+  }
+
+  function showWhatsappCallout() {
+    const link = buildWhatsappLink();
+    const barbeiro = barbeirosCache.find((item) => item.id === barbeiroSelect.value);
+    const obrigatorio = agendaConfig.whatsapp_confirmacao_obrigatoria !== false;
+
+    if (!link) {
+      window.AppUtils.notify(info, 'Agendamento criado, mas o barbeiro esta sem telefone para WhatsApp cadastrado.', true);
+      return;
+    }
+
+    info.className = 'muted';
+    info.textContent = '';
+
+    window.AppUtils.notify(
+      null,
+      obrigatorio
+        ? `Horario agendado com sucesso. E obrigatorio enviar a mensagem para ${barbeiro?.nome || 'o barbeiro'} no WhatsApp para confirmar o atendimento.`
+        : `Horario agendado com sucesso. Se quiser, voce pode avisar ${barbeiro?.nome || 'o barbeiro'} no WhatsApp para agilizar a confirmacao do atendimento.`,
+      false,
+      {
+        title: 'Horario agendado com sucesso',
+        action: {
+          label: obrigatorio ? 'Mensagem obrigatoria no WhatsApp' : 'Avisar no WhatsApp',
+          href: link
+        }
+      }
+    );
+  }
+
+  async function loadAgendaConfig() {
+    const { data, error } = await window.sb.rpc('obter_configuracao_agenda_publica');
+    if (error) throw error;
+
+    agendaConfig = data?.[0] || {
+      whatsapp_confirmacao_obrigatoria: true
+    };
+  }
 
   function isoDate(date) {
     return window.AppUtils.dateToISO(date);
@@ -59,7 +125,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (barbeirosRes.error) throw barbeirosRes.error;
     if (servicosRes.error) throw servicosRes.error;
 
-    renderOptions(barbeiroSelect, barbeirosRes.data || [], (b) => b.nome);
+    barbeirosCache = barbeirosRes.data || [];
+    renderOptions(barbeiroSelect, barbeirosCache, (b) => b.nome);
     renderOptions(servicoSelect, servicosRes.data || [], (s) => `${s.nome} - ${window.AppUtils.formatMoney(s.preco)} (${s.duracao_minutos}m)`);
   }
 
@@ -169,7 +236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  document.getElementById('btn-confirmar-agendamento')?.addEventListener('click', async () => {
+  confirmBtn.addEventListener('click', async () => {
     if (!selectedDate || !dataInput.value) {
       window.AppUtils.notify(info, 'Selecione uma data no calendario.', true);
       return;
@@ -188,7 +255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       if (error) throw error;
 
-      window.AppUtils.notify(info, 'Agendamento confirmado com sucesso.');
+      showWhatsappCallout();
       await loadSlots();
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -201,6 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const profile = await window.Auth.getUserProfile();
     const nome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
+    clienteNome = nome;
     const telefone = session.user.user_metadata?.telefone || null;
 
     const { error: ensureError } = await window.sb.rpc('garantir_cliente_auth', {
@@ -216,6 +284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       perfil: profile?.perfil || 'cliente'
     });
 
+    await loadAgendaConfig();
     await loadOptions();
     selectedDate = normalizeDate(today);
     dataInput.value = isoDate(selectedDate);

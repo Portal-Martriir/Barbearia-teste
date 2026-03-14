@@ -118,10 +118,12 @@ textarea {
 .content-area {
   position: relative;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .container {
   width: min(var(--container-width), 94vw);
+  max-width: 100%;
   margin: 0 auto;
   padding: 28px 0 44px;
 }
@@ -526,10 +528,13 @@ button:disabled {
   backdrop-filter: blur(16px);
   background: rgba(246, 248, 251, 0.8);
   border-bottom: 1px solid rgba(199, 210, 225, 0.72);
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
 }
 
 .topbar-inner {
   width: min(var(--container-width), 94vw);
+  max-width: 100%;
   min-height: 74px;
   margin: 0 auto;
   display: flex;
@@ -558,7 +563,7 @@ button:disabled {
   flex: 0 0 42px;
   border-radius: 14px;
   background-color: #ffffff;
-  background-image: url('../assets/LOGOBARBERLUCAS.jpeg');
+  background-image: url('../assets/BARBEARIADSOUSA.jpeg');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
@@ -700,6 +705,7 @@ button:disabled {
   width: min(var(--sidebar-width), 88vw);
   min-height: 100vh;
   padding: 18px 14px;
+  padding-left: max(14px, env(safe-area-inset-left, 0));
   overflow-y: auto;
   background: var(--gradient-sidebar);
   border-right: 1px solid rgba(199, 210, 225, 0.9);
@@ -856,6 +862,19 @@ body.sidebar-open .sidebar-overlay {
   border-color: var(--color-danger-line);
 }
 
+.badge.solicitado {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  border-color: var(--color-info-line);
+}
+
+.badge.erro,
+.badge.desativado {
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  border-color: var(--color-danger-line);
+}
+
 .info,
 .error {
   margin-top: 8px;
@@ -936,24 +955,26 @@ li + li {
 }
 
 .auth-logo-slot {
-  width: 96px;
-  height: 96px;
-  border-radius: 28px;
+  width: min(100%, 320px);
+  min-height: 140px;
+  padding: 20px 24px;
+  border-radius: 32px;
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(199, 210, 225, 0.82);
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: var(--shadow-xs);
-  margin-bottom: 8px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 48%, #eef2ff 100%);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 12px;
 }
 
 .auth-logo-slot img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  background: #ffffff;
+  display: block;
+  background: transparent;
 }
 
 .auth-form {
@@ -1000,6 +1021,10 @@ li + li {
 
 .auth-tab-wrap-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.auth-tab-wrap-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .auth-tab-btn {
@@ -1845,13 +1870,15 @@ textarea:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .auth-tab-wrap {
+  .auth-tab-wrap,
+  .auth-tab-wrap-3 {
     display: flex;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
     scroll-snap-type: x proximity;
     padding-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .auth-tab-btn {
@@ -1956,6 +1983,17 @@ textarea:focus-visible {
   .rowBetween > a.btn-secondary,
   .rowBetween > a.btn-danger,
   .rowBetween > a.btn-warning {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .booking-hero .rowBetween {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .booking-hero .rowBetween .btn-primary {
     width: 100%;
   }
 
@@ -2098,9 +2136,10 @@ textarea:focus-visible {
   }
 
   .auth-logo-slot {
-    width: 88px;
-    height: 88px;
-    border-radius: 22px;
+    width: min(100%, 280px);
+    min-height: 116px;
+    padding: 18px 20px;
+    border-radius: 24px;
   }
 
   .auth-tab-wrap {

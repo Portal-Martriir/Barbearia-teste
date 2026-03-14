@@ -6,16 +6,16 @@
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
   <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
   <script src="../js/security.js"></script>
-  <title>Configuracoes | DomLucasBarberShop</title>
+  <title>Configuracoes | Barberia D'sousa</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body class="app-page">
   <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
 
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
       <div class="sidebar-card">
-        <span class="brand">DomLucasBarberShop</span>
+        <span class="brand">Barberia D'sousa</span>
         <nav class="nav">
           <a href="./dashboard.html">Dashboard</a>
           <a href="./cadastro.html">Cadastros</a>
@@ -33,8 +33,8 @@
     <div class="content-area">
       <header class="topbar">
         <div class="topbar-inner">
-          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
-          <span class="brand">DomLucasBarberShop</span>
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">Barberia D'sousa</span>
           <div>
             <span data-user-name></span>
             <button data-logout class="btn-secondary">Sair</button>
@@ -45,6 +45,11 @@
       <main class="container">
         <h1>Configuracoes gerais</h1>
         <p id="config-info" class="muted"></p>
+
+        <div class="auth-tab-wrap">
+          <button type="button" class="auth-tab-btn active" data-config-tab="horarios">Horarios</button>
+          <button type="button" class="auth-tab-btn" data-config-tab="senhas">Senhas</button>
+        </div>
 
         <div class="auth-panel active" id="config-panel-horarios">
           <section class="card">
@@ -62,6 +67,31 @@
               <label>Semana de referencia
                 <input id="cfg-semana-ref" type="date" />
               </label>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <div>
+                <h3>Confirmacao por WhatsApp</h3>
+                <p class="muted">Defina se, ao finalizar o agendamento, o cliente precisa obrigatoriamente abrir a mensagem no WhatsApp do barbeiro.</p>
+              </div>
+            </div>
+
+            <p id="cfg-whatsapp-info" class="muted"></p>
+
+            <div class="form-row">
+              <label class="status-switch">
+                <input id="cfg-whatsapp-obrigatorio" type="checkbox" />
+                <span class="status-switch-track">
+                  <span class="status-switch-thumb"></span>
+                </span>
+                <span id="cfg-whatsapp-obrigatorio-label" class="status-switch-label">Obrigatorio</span>
+              </label>
+            </div>
+
+            <div class="section-actions">
+              <button id="btn-salvar-config-whatsapp" type="button" class="btn-primary">Salvar configuracao do WhatsApp</button>
             </div>
           </section>
 
@@ -141,6 +171,7 @@
             </div>
           </section>
         </div>
+
       </main>
     </div>
   </div>
@@ -174,4 +205,3 @@
   <script src="../js/configuracoes.js"></script>
 </body>
 </html>
-

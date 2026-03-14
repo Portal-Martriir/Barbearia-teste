@@ -19,6 +19,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     return String(v).slice(0, 5);
   }
 
+  function normalizePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('55')) return digits;
+    return `55${digits}`;
+  }
+
+  function whatsappLink(row) {
+    const phone = normalizePhone(row.barbeiro_telefone);
+    if (!phone) return '';
+
+    const mensagem = `Ola, ${row.barbeiro}. Confirmando meu agendamento de ${row.servico} para o dia ${window.AppUtils.formatDate(row.data)} as ${timeLabel(row.hora_inicio)}.`;
+    return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
+  }
+
+  function actionCell(row) {
+    const actions = [];
+
+    if (row.status === 'agendado' && row.barbeiro_telefone) {
+      actions.push(`<a class="btn-whatsapp" href="${window.AppUtils.escapeAttr(whatsappLink(row))}" target="_blank" rel="noopener noreferrer">WhatsApp</a>`);
+    }
+
+    if (row.status === 'agendado' && row.pode_cancelar) {
+      actions.push(`<button type="button" class="btn-danger" data-cancel-id="${row.id}">Cancelar</button>`);
+    }
+
+    return actions.length ? `<div class="action-wrap">${actions.join('')}</div>` : '-';
+  }
+
   function renderRows() {
     const rows = cache.filter((r) => {
       if (activeStatus === 'cancelado') {
@@ -40,11 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <td>${window.AppUtils.formatDate(r.data)}</td>
         <td>${timeLabel(r.hora_inicio)} - ${timeLabel(r.hora_fim)}</td>
         <td><span class="badge ${r.status}">${r.status}</span></td>
-        <td>
-          ${r.status === 'agendado' && r.pode_cancelar
-            ? `<button type="button" class="btn-danger" data-cancel-id="${r.id}">Cancelar</button>`
-            : '-'}
-        </td>
+        <td>${actionCell(r)}</td>
       </tr>
     `).join('');
   }

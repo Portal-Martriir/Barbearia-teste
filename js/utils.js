@@ -4,6 +4,7 @@ window.AppUtils = {
     title: null,
     message: null,
     closeBtn: null,
+    actionBtn: null,
     timer: null
   },
   _inlineNotifyTimers: new WeakMap(),
@@ -67,6 +68,7 @@ window.AppUtils = {
         <div class="app-modal-header">
           <h3 id="global-notify-title">Aviso</h3>
           <p class="muted" id="global-notify-message"></p>
+          <a id="global-notify-action" class="btn-whatsapp" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
         </div>
         <div class="app-modal-actions">
           <button type="button" class="btn-primary">Fechar</button>
@@ -94,13 +96,14 @@ window.AppUtils = {
       title: root.querySelector('#global-notify-title'),
       message: root.querySelector('#global-notify-message'),
       closeBtn: root.querySelector('.app-modal-actions .btn-primary'),
+      actionBtn: root.querySelector('#global-notify-action'),
       timer: null
     };
 
     return this._notifyModalState;
   },
 
-  notify(el, msg, isError = false) {
+  notify(el, msg, isError = false, options = {}) {
     if (el) {
       const currentTimer = this._inlineNotifyTimers.get(el);
       if (currentTimer) {
@@ -121,12 +124,13 @@ window.AppUtils = {
 
     const modal = this.ensureNotifyModal();
     if (!modal.root || !modal.title || !modal.message) return;
+    const action = options?.action || null;
 
     modal.root.hidden = false;
     modal.root.setAttribute('aria-hidden', 'false');
     modal.root.classList.toggle('is-error', isError);
     modal.root.classList.toggle('is-success', !isError);
-    modal.title.textContent = isError ? 'Erro' : 'Alteracao realizada';
+    modal.title.textContent = options?.title || (isError ? 'Erro' : 'Alteracao realizada');
     modal.message.textContent = msg;
 
     if (modal.closeBtn) {
@@ -134,16 +138,31 @@ window.AppUtils = {
       modal.closeBtn.className = isError ? 'btn-secondary' : 'btn-primary';
     }
 
-    if (this._notifyModalState.timer) {
-      window.clearTimeout(this._notifyModalState.timer);
+    if (modal.actionBtn) {
+      if (action?.href && action?.label) {
+        modal.actionBtn.hidden = false;
+        modal.actionBtn.href = action.href;
+        modal.actionBtn.textContent = action.label;
+      } else {
+        modal.actionBtn.hidden = true;
+        modal.actionBtn.href = '#';
+        modal.actionBtn.textContent = '';
+      }
     }
 
-    this._notifyModalState.timer = window.setTimeout(() => {
-      if (!modal.root.hidden) {
-        modal.root.hidden = true;
-        modal.root.setAttribute('aria-hidden', 'true');
-      }
+    if (this._notifyModalState.timer) {
+      window.clearTimeout(this._notifyModalState.timer);
       this._notifyModalState.timer = null;
-    }, isError ? 5000 : 3000);
+    }
+
+    if (!action) {
+      this._notifyModalState.timer = window.setTimeout(() => {
+        if (!modal.root.hidden) {
+          modal.root.hidden = true;
+          modal.root.setAttribute('aria-hidden', 'true');
+        }
+        this._notifyModalState.timer = null;
+      }, isError ? 5000 : 3000);
+    }
   }
 };

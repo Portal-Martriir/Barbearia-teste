@@ -4,16 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
-  <title>Agenda do Barbeiro | DomLucasBarberShop</title>
+  <title>Agenda do Barbeiro | Barberia D'sousa</title>
   <link rel="stylesheet" href="../css/style.css" />
 </head>
 <body class="app-page">
   <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
 
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
       <div class="sidebar-card">
-        <span class="brand">DomLucasBarberShop</span>
+        <span class="brand">Barberia D'sousa</span>
         <nav class="nav">
           <a href="./dashboard.html" data-admin-only>Dashboard</a>
           <a href="./cadastro.html" data-admin-only>Cadastros</a>
@@ -35,8 +35,8 @@
     <div class="content-area">
       <header class="topbar">
         <div class="topbar-inner">
-          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu">&#9776;</button>
-          <span class="brand">DomLucasBarberShop</span>
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">Barberia D'sousa</span>
           <div>
             <span data-user-name></span>
             <button data-logout class="btn-secondary">Sair</button>
@@ -47,6 +47,12 @@
       <main class="container">
         <h1>Agenda do Barbeiro</h1>
         <p id="agenda-barbeiro-info" class="muted"></p>
+
+        <div class="auth-tab-wrap auth-tab-wrap-3" role="tablist" aria-label="Seções da agenda do barbeiro">
+          <button type="button" class="auth-tab-btn active" data-agenda-barbeiro-tab="agendamentos" role="tab">Agendamentos</button>
+          <button type="button" class="auth-tab-btn" data-agenda-barbeiro-tab="registro" role="tab">Registro</button>
+          <button type="button" class="auth-tab-btn" data-agenda-barbeiro-tab="manual" role="tab">Lançamento manual</button>
+        </div>
 
         <section class="card">
           <div class="auth-panel active" id="agenda-barbeiro-panel-agendamentos">
@@ -127,16 +133,33 @@
               <div class="rowBetween">
                 <div>
                   <h3>Lancar horario manual</h3>
-                  <p class="muted">Crie um agendamento manual sem depender do cliente marcar pelo sistema.</p>
+                  <p class="muted">Crie um agendamento manual apenas para um usuario cliente ja cadastrado no sistema.</p>
                 </div>
               </div>
 
-              <div class="form-row">
-                <label>Nome do cliente
-                  <input id="manual-cliente-nome" type="text" placeholder="Nome do cliente" required />
+              <div class="password-user-picker section-space-top">
+                <div class="form-row password-search-row">
+                  <label>Buscar usuario cliente
+                    <input id="manual-cliente-busca" type="search" placeholder="Buscar por nome, e-mail ou telefone" />
+                  </label>
+                  <button id="btn-buscar-manual-cliente" type="button" class="btn-secondary">Buscar usuario</button>
+                </div>
+
+                <div id="manual-cliente-selecionado" class="password-selected-user password-selected-user-card">
+                  Selecione um usuario cliente para vincular o horario manual.
+                </div>
+
+                <div id="manual-cliente-lista" class="password-user-list" role="listbox" aria-label="Usuarios clientes cadastrados">
+                  <div class="password-empty-state">Carregando usuarios clientes...</div>
+                </div>
+              </div>
+
+              <div class="form-row section-space-top">
+                <label>E-mail do usuario
+                  <input id="manual-cliente-email" type="text" readonly />
                 </label>
-                <label>Telefone
-                  <input id="manual-cliente-telefone" type="text" placeholder="Telefone do cliente" required />
+                <label>Telefone do usuario
+                  <input id="manual-cliente-telefone" type="text" readonly />
                 </label>
                 <label>Servico
                   <select id="manual-servico"></select>
@@ -186,4 +209,3 @@
   <script src="../js/agendaBarbeiro.js"></script>
 </body>
 </html>
-

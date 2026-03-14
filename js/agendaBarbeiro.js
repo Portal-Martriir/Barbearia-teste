@@ -21,7 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const panelAgendamentos = document.getElementById('agenda-barbeiro-panel-agendamentos');
   const panelRegistro = document.getElementById('agenda-barbeiro-panel-registro');
   const panelManual = document.getElementById('agenda-barbeiro-panel-manual');
-  const manualNomeInput = document.getElementById('manual-cliente-nome');
+  const manualClienteBuscaInput = document.getElementById('manual-cliente-busca');
+  const manualClienteBuscarBtn = document.getElementById('btn-buscar-manual-cliente');
+  const manualClienteLista = document.getElementById('manual-cliente-lista');
+  const manualClienteSelecionado = document.getElementById('manual-cliente-selecionado');
+  const manualEmailInput = document.getElementById('manual-cliente-email');
   const manualTelefoneInput = document.getElementById('manual-cliente-telefone');
   const manualServicoSelect = document.getElementById('manual-servico');
   const manualDataInput = document.getElementById('manual-data');
@@ -37,8 +41,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let manualSlotsRequestId = 0;
   let manualViewMonth = new Date();
   let manualSelectedDate = null;
+  let manualClientesCache = [];
+  let manualSelectedClienteId = null;
 
-  if (!agendaDataInicioInput || !agendaDataFimInput || !periodoSelect || !aplicarFiltroBtn || !agendaBody || !historicoBody || !panelAgendamentos || !panelRegistro || !panelManual || !manualNomeInput || !manualTelefoneInput || !manualServicoSelect || !manualDataInput || !manualDataLabel || !manualSlots || !manualHorarioSelecionado || !manualSalvarBtn || !manualCalTitle || !manualCalGrid || !manualCalPrev || !manualCalNext) {
+  if (!agendaDataInicioInput || !agendaDataFimInput || !periodoSelect || !aplicarFiltroBtn || !agendaBody || !historicoBody || !panelAgendamentos || !panelRegistro || !panelManual || !manualClienteBuscaInput || !manualClienteBuscarBtn || !manualClienteLista || !manualClienteSelecionado || !manualEmailInput || !manualTelefoneInput || !manualServicoSelect || !manualDataInput || !manualDataLabel || !manualSlots || !manualHorarioSelecionado || !manualSalvarBtn || !manualCalTitle || !manualCalGrid || !manualCalPrev || !manualCalNext) {
     window.AppUtils.notify(info, 'Elementos da agenda nao encontrados.', true);
     return;
   }
@@ -186,6 +192,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     )).join('');
   }
 
+  function renderManualSelectedCliente() {
+    const cliente = manualClientesCache.find((item) => String(item.id) === String(manualSelectedClienteId));
+    if (!cliente) {
+      manualClienteSelecionado.textContent = 'Selecione um usuario cliente para vincular o horario manual.';
+      manualEmailInput.value = '';
+      manualTelefoneInput.value = '';
+      return;
+    }
+
+    manualClienteSelecionado.innerHTML = `
+      <strong>${window.AppUtils.escapeHtml(cliente.nome || 'Usuario sem nome')}</strong><br />
+      <span>${window.AppUtils.escapeHtml(cliente.email || 'Email nao informado')}</span><br />
+      <small>${window.AppUtils.escapeHtml(cliente.telefone || 'Telefone nao informado')}</small>
+    `;
+    manualEmailInput.value = cliente.email || '';
+    manualTelefoneInput.value = cliente.telefone || '';
+  }
+
+  function renderManualClientes() {
+    if (!manualClientesCache.length) {
+      manualClienteLista.innerHTML = '<div class="password-empty-state">Nenhum usuario cliente encontrado para a busca informada.</div>';
+      renderManualSelectedCliente();
+      return;
+    }
+
+    manualClienteLista.innerHTML = manualClientesCache.map((cliente) => `
+      <button
+        type="button"
+        class="password-user-item ${String(cliente.id) === String(manualSelectedClienteId) ? 'active' : ''}"
+        data-manual-cliente-id="${window.AppUtils.escapeAttr(cliente.id)}"
+      >
+        <strong>${window.AppUtils.escapeHtml(cliente.nome || 'Usuario sem nome')}</strong>
+        <span>${window.AppUtils.escapeHtml(cliente.email || 'Email nao informado')}</span>
+        <small>${window.AppUtils.escapeHtml(cliente.telefone || 'Telefone nao informado')}</small>
+      </button>
+    `).join('');
+
+    renderManualSelectedCliente();
+  }
+
+  async function loadManualClientes(searchValue = manualClienteBuscaInput.value) {
+    const { data, error } = await window.sb.rpc('listar_clientes_agendamento_barbeiro', {
+      p_busca: String(searchValue || '').trim() || null
+    });
+    if (error) throw error;
+
+    manualClientesCache = data || [];
+    if (!manualClientesCache.some((item) => String(item.id) === String(manualSelectedClienteId))) {
+      manualSelectedClienteId = manualClientesCache[0]?.id || null;
+    }
+
+    renderManualClientes();
+  }
+
   async function loadManualSlots() {
     const requestId = ++manualSlotsRequestId;
     manualSelectedSlot = null;
@@ -256,7 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nome = String(row.clientes?.nome || 'cliente').trim();
     const data = window.AppUtils.formatDate(row.data);
     const hora = String(row.hora_inicio || '').slice(0, 5);
-    const mensagem = `Ola, ${nome}. Aqui e da DomLucasBarberShop. Confirma seu atendimento em ${data} as ${hora}?`;
+    const mensagem = `Ola, ${nome}. Aqui e da Barberia D'sousa. Confirma seu atendimento em ${data} as ${hora}?`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
   }
 
@@ -453,16 +513,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     manualHorarioSelecionado.textContent = `Horario selecionado: ${manualSelectedSlot}`;
   });
 
-  manualSalvarBtn.addEventListener('click', async () => {
-    const nomeCliente = String(manualNomeInput.value || '').trim();
-    const telefoneCliente = String(manualTelefoneInput.value || '').trim();
+  manualClienteBuscarBtn.addEventListener('click', () => {
+    loadManualClientes().catch((err) => window.AppUtils.notify(info, err.message, true));
+  });
 
-    if (!nomeCliente) {
-      window.AppUtils.notify(info, 'Informe o nome do cliente.', true);
-      return;
-    }
-    if (!telefoneCliente) {
-      window.AppUtils.notify(info, 'Informe o telefone do cliente.', true);
+  manualClienteBuscaInput.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Enter') return;
+    ev.preventDefault();
+    loadManualClientes().catch((err) => window.AppUtils.notify(info, err.message, true));
+  });
+
+  manualClienteLista.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('button[data-manual-cliente-id]');
+    if (!btn) return;
+
+    manualSelectedClienteId = btn.dataset.manualClienteId;
+    renderManualClientes();
+  });
+
+  manualSalvarBtn.addEventListener('click', async () => {
+    if (!manualSelectedClienteId) {
+      window.AppUtils.notify(info, 'Selecione um usuario cliente existente.', true);
       return;
     }
     if (!manualServicoSelect.value || !manualDataInput.value) {
@@ -475,20 +546,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-      const { error } = await window.sb.rpc('criar_agendamento_publico', {
-        p_cliente_id: null,
-        p_nome: nomeCliente,
-        p_telefone: telefoneCliente,
+      const { error } = await window.sb.rpc('criar_agendamento_manual_barbeiro', {
+        p_usuario_id: manualSelectedClienteId,
         p_barbeiro_id: barbeiroId,
         p_servico_id: manualServicoSelect.value,
         p_data: manualDataInput.value,
-        p_hora_inicio: manualSelectedSlot,
-        p_sem_cadastro: true
+        p_hora_inicio: manualSelectedSlot
       });
       if (error) throw error;
 
-      manualNomeInput.value = '';
-      manualTelefoneInput.value = '';
       manualSelectedSlot = null;
       manualHorarioSelecionado.textContent = 'Selecione um horario para confirmar.';
       await Promise.all([refresh(), loadManualSlots()]);
@@ -514,6 +580,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     manualDataLabel.textContent = window.AppUtils.formatDate(manualDataInput.value);
     renderManualCalendar();
     await loadManualServices();
+    await loadManualClientes();
     await loadManualSlots();
     await refresh();
     if (!barbeiroId) {
