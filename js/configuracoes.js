@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let usuariosCache = [];
   let selectedUserId = null;
+  let agendaConfigRow = null;
 
   function updateWhatsappToggleLabel() {
     if (!whatsappObrigatorioLabel || !whatsappObrigatorioInput) return;
@@ -60,11 +61,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function loadAgendaConfig() {
     const { data, error } = await window.sb
       .from('configuracao_agenda')
-      .select('id, whatsapp_confirmacao_obrigatoria')
-      .eq('id', 1)
+      .select('id, barbearia_id, whatsapp_confirmacao_obrigatoria')
       .maybeSingle();
     if (error) throw error;
 
+    agendaConfigRow = data || null;
     whatsappObrigatorioInput.checked = data?.whatsapp_confirmacao_obrigatoria !== false;
     updateWhatsappToggleLabel();
   }
@@ -72,15 +73,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function saveWhatsappConfig() {
     try {
       btnSalvarWhatsapp.disabled = true;
+      const payload = {
+        whatsapp_confirmacao_obrigatoria: whatsappObrigatorioInput.checked
+      };
+      if (agendaConfigRow?.id) payload.id = agendaConfigRow.id;
+      if (agendaConfigRow?.barbearia_id) payload.barbearia_id = agendaConfigRow.barbearia_id;
 
       const { error } = await window.sb
         .from('configuracao_agenda')
-        .upsert({
-          id: 1,
-          whatsapp_confirmacao_obrigatoria: whatsappObrigatorioInput.checked
-        }, { onConflict: 'id' });
+        .upsert(payload, { onConflict: 'barbearia_id' })
+        .select('id, barbearia_id, whatsapp_confirmacao_obrigatoria')
+        .single();
       if (error) throw error;
 
+      await loadAgendaConfig();
       updateWhatsappToggleLabel();
       window.AppUtils.notify(whatsappInfo, 'Configuracao do WhatsApp salva com sucesso.');
     } catch (err) {
