@@ -65,7 +65,7 @@ begin
   select jsonb_build_object(
     'totalFaturado', coalesce((select sum(valor_servico) from fin where status_pagamento = 'pago'), 0),
     'atendimentos', coalesce((select count(*) from ag where status = 'concluido'), 0),
-    'agendamentos', coalesce((select count(*) from ag where status not in ('cancelado', 'desistencia_cliente')), 0),
+    'agendamentos', coalesce((select count(*) from ag where status in ('agendado', 'em_atendimento')), 0),
     'cancelados', coalesce((select count(*) from ag where status in ('cancelado', 'desistencia_cliente')), 0),
     'topBarbeiro', coalesce((select jsonb_build_object('nome', nome, 'total', total) from ranking limit 1), 'null'::jsonb),
     'contasReceber', coalesce((select sum(valor_servico) from fin where status_pagamento = 'pendente'), 0) + coalesce((select total from contas), 0),

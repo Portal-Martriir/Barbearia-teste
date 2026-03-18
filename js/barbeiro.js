@@ -267,6 +267,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderResumoPeriodo(rows, comRows, proximosClientes) {
     if (!barbeiroId) {
+      document.getElementById('card-agendamentos-hoje').textContent = '0';
       document.getElementById('card-atendimentos-hoje').textContent = '0';
       document.getElementById('card-cancelados-hoje').textContent = '0';
       document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(0);
@@ -275,14 +276,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const agendamentosAtivos = rows.filter((r) => !['cancelado', 'desistencia_cliente'].includes(r.status)).length;
+    const agendamentosAtivos = rows.filter((r) => ['agendado', 'em_atendimento'].includes(r.status)).length;
+    const atendimentos = rows.filter((r) => r.status === 'concluido').length;
     const cancelados = rows.filter((r) => ['cancelado', 'desistencia_cliente'].includes(r.status)).length;
     const faturado = rows
       .filter((r) => r.status === 'concluido')
       .reduce((acc, r) => acc + Number(r.valor || 0), 0);
     const comissao = (comRows || []).reduce((acc, r) => acc + Number(r.valor_comissao || 0), 0);
 
-    document.getElementById('card-atendimentos-hoje').textContent = String(agendamentosAtivos);
+    document.getElementById('card-agendamentos-hoje').textContent = String(agendamentosAtivos);
+    document.getElementById('card-atendimentos-hoje').textContent = String(atendimentos);
     document.getElementById('card-cancelados-hoje').textContent = String(cancelados);
     document.getElementById('card-faturado-hoje').textContent = window.AppUtils.formatMoney(faturado);
     document.getElementById('card-comissao-hoje').textContent = window.AppUtils.formatMoney(comissao);
