@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     totalFaturado: document.getElementById('total-faturado-hoje'),
     atendimentos: document.getElementById('atendimentos-hoje'),
     agendamentos: document.getElementById('agendamentos-hoje'),
+    cancelados: document.getElementById('cancelados-hoje'),
     topBarbeiro: document.getElementById('top-barbeiro-hoje'),
     comissoesHoje: document.getElementById('dashboard-comissoes-hoje'),
     liquidoHoje: document.getElementById('dashboard-liquido-hoje')
@@ -135,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     cards.totalFaturado.textContent = window.AppUtils.formatMoney(resumo.totalFaturado || 0);
     cards.atendimentos.textContent = String(resumo.atendimentos || 0);
     cards.agendamentos.textContent = String(resumo.agendamentos || 0);
+    cards.cancelados.textContent = String(resumo.cancelados || 0);
     cards.topBarbeiro.textContent = top ? `${top.nome} (${window.AppUtils.formatMoney(top.total || 0)})` : 'Sem dados';
     cards.comissoesHoje.textContent = window.AppUtils.formatMoney(resumo.comissoes || 0);
     cards.liquidoHoje.textContent = window.AppUtils.formatMoney(resumo.liquido || 0);
