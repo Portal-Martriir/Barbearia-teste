@@ -311,7 +311,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <td>${telefoneCell(r)}</td>
           <td>${r.servicos?.nome || '-'}</td>
           <td><span class="badge ${r.status}">${r.status}</span></td>
-          <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
+          <td><span class="badge ${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}">${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}</span></td>
           <td>${formatMotivo(r)}</td>
           <td>${buildStatusActions(r)}</td>
         </tr>

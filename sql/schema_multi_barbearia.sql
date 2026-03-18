@@ -416,12 +416,15 @@ begin
   new.barbearia_id := v_barbearia_id;
   new.valor := coalesce(v_preco, 0);
   new.hora_fim := (new.hora_inicio + make_interval(mins => v_duracao))::time;
-  new.pagamento_pendente := coalesce(new.pagamento_status, 'pago') = 'pendente';
 
   if new.status in ('cancelado', 'desistencia_cliente') then
+    new.pagamento_status := 'pendente';
+    new.pagamento_pendente := true;
     new.cancelado_em := coalesce(new.cancelado_em, now());
     new.cancelado_por := coalesce(new.cancelado_por, auth.uid());
   else
+    new.pagamento_status := coalesce(new.pagamento_status, 'pago');
+    new.pagamento_pendente := new.pagamento_status = 'pendente';
     new.cancelado_em := null;
   end if;
 
@@ -1001,6 +1004,8 @@ begin
 
   update public.agendamentos
   set status = 'cancelado',
+      pagamento_status = 'pendente',
+      pagamento_pendente = true,
       motivo_cancelamento = 'Cancelado pelo cliente',
       cancelado_em = now(),
       cancelado_por = auth.uid()

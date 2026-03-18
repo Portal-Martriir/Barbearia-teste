@@ -391,7 +391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td>${telefoneCell(r)}</td>
             <td>${r.servicos?.nome || '-'}</td>
             <td><span class="badge ${r.status}">${r.status}</span></td>
-            <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
+            <td><span class="badge ${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}">${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}</span></td>
             <td>${actionsHtml(r)}</td>
           </tr>
         `).join('');
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <td>${window.AppUtils.formatDate(r.data)}</td>
             <td><span class="badge ${r.status}">${r.status}</span></td>
             <td>${formatMotivo(r)}</td>
-            <td><span class="badge ${r.pagamento_pendente ? 'pendente' : 'pago'}">${r.pagamento_pendente ? 'pendente' : 'pago'}</span></td>
+            <td><span class="badge ${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}">${['cancelado', 'desistencia_cliente'].includes(r.status) ? 'cancelado' : (r.pagamento_pendente ? 'pendente' : 'pago')}</span></td>
           </tr>
         `).join('');
   }
