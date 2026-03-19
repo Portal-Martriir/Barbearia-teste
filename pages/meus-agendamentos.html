@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Meus Agendamentos | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./cliente.html">Dashboard Cliente</a>
+          <a href="./cliente-agendamento.html">Agendar novo horario</a>
+          <a href="./meus-agendamentos.html">Meus agendamentos</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name>Cliente</span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name>Cliente</span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container booking-container">
+        <section class="card booking-hero">
+          <h1>Meus Agendamentos</h1>
+          <p class="muted">Visualize próximos agendamentos, concluídos e cancelados.</p>
+        </section>
+
+        <section class="card">
+          <div class="auth-tab-wrap">
+            <button type="button" class="auth-tab-btn active" data-status-tab="agendado">Proximos</button>
+            <button type="button" class="auth-tab-btn" data-status-tab="concluido">Concluidos</button>
+            <button type="button" class="auth-tab-btn" data-status-tab="cancelado">Cancelados/Desistencia</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barbeiro</th>
+                  <th>Servico</th>
+                  <th>Data</th>
+                  <th>Horario</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="meus-agendamentos-tbody"></tbody>
+            </table>
+          </div>
+
+          <p id="meus-agendamentos-info" class="muted"></p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/meusAgendamentos.js"></script>
+</body>
+</html>

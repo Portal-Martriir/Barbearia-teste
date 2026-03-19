@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Dashboard Cliente | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./cliente.html">Dashboard Cliente</a>
+          <a href="./cliente-agendamento.html">Agendar novo horario</a>
+          <a href="./meus-agendamentos.html">Meus agendamentos</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name>Cliente</span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name>Cliente</span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container booking-container">
+        <section class="card booking-hero">
+          <div class="rowBetween">
+            <div>
+              <h1>Dashboard do Cliente</h1>
+              <p class="muted">Bem-vindo, <strong id="cliente-nome-topo">Cliente</strong>.</p>
+            </div>
+            <a href="./cliente-agendamento.html" class="btn-primary">Agendar horario</a>
+          </div>
+        </section>
+
+        <section class="grid">
+          <article class="card">
+            <h3>Proximo agendamento</h3>
+            <p id="cliente-proximo" class="muted">Nenhum agendamento futuro.</p>
+          </article>
+          <article class="card">
+            <h3>Total de servicos concluidos</h3>
+            <div class="value" id="cliente-total-servicos">0</div>
+          </article>
+          <article class="card">
+            <h3>Agendamentos ativos</h3>
+            <div class="value" id="cliente-total-agendados">0</div>
+          </article>
+        </section>
+
+        <section class="card">
+          <h3>Historico de servicos</h3>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Servico</th>
+                  <th>Barbeiro</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="cliente-historico-tbody"></tbody>
+            </table>
+          </div>
+          <p id="cliente-area-info" class="muted"></p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/clienteArea.js"></script>
+</body>
+</html>

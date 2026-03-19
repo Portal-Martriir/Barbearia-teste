@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
+  <script src="./js/security.js"></script>
+  <title>Login | INTEGRALISSOLUCOES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body class="auth-page">
+  <main class="auth-shell">
+    <section class="auth-card login-container">
+      <header class="auth-card-top">
+        <div class="auth-logo-slot">
+          <img src="./assets/BARBEARIADSOUSA.jpeg" alt="Logo INTEGRALISSOLUCOES" />
+        </div>
+        <h1>Bem-vindo(a) a INTEGRALISSOLUCOES</h1>
+        <p class="muted">Entre, registre sua conta ou faça um agendamento sem cadastro.</p>
+      </header>
+
+      <div class="auth-tab-wrap" id="auth-tab-wrap">
+        <button type="button" class="auth-tab-btn active" data-auth-tab="login">Login</button>
+        <button type="button" class="auth-tab-btn" data-auth-tab="registrar">Registrar</button>
+        <button type="button" class="auth-tab-btn" data-auth-tab="agendar">Agendar sem cadastro</button>
+      </div>
+
+      <div class="auth-panel active" id="panel-login">
+        <form id="form-login" class="auth-form" autocomplete="on">
+          <label>Email
+            <input id="email" type="email" autocomplete="username" required />
+          </label>
+
+          <label>Senha
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+
+          <button class="btn-primary auth-submit" type="submit">Entrar</button>
+        </form>
+
+        <p id="login-info" class="muted auth-status"></p>
+      </div>
+
+      <div class="auth-panel" id="panel-registrar">
+        <form id="form-register" class="auth-form" autocomplete="on">
+          <label>Nome
+            <input id="reg-nome" type="text" required />
+          </label>
+          <label>Email
+            <input id="reg-email" type="email" autocomplete="email" required />
+          </label>
+          <label>Senha
+            <input id="reg-password" type="password" autocomplete="new-password" required />
+          </label>
+          <label>Telefone
+            <input id="reg-telefone" type="tel" required />
+          </label>
+          <button class="btn-primary auth-submit" type="submit">Registrar</button>
+        </form>
+        <p id="register-info" class="muted auth-status"></p>
+      </div>
+
+      <div class="auth-panel" id="panel-agendar">
+        <form id="form-agendar-rapido-login" class="auth-form">
+          <label>Nome
+            <input id="sr-nome" type="text" required />
+          </label>
+          <label>Telefone
+            <input id="sr-telefone" type="tel" required />
+          </label>
+          <label>Barbeiro
+            <select id="sr-barbeiro" required></select>
+          </label>
+          <label>Serviço
+            <select id="sr-servico" required></select>
+          </label>
+
+          <div class="calendar-card">
+            <div class="rowBetween">
+              <button id="sr-btn-cal-prev" type="button" class="btn-secondary">Mês anterior</button>
+              <strong id="sr-cal-title">Calendário</strong>
+              <button id="sr-btn-cal-next" type="button" class="btn-secondary">Próximo mês</button>
+            </div>
+            <div class="calendar-weekdays">
+              <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
+            </div>
+            <div id="sr-calendar-grid" class="calendar-grid"></div>
+          </div>
+
+          <p class="muted">Data selecionada: <strong id="sr-data-label">-</strong></p>
+          <div id="sr-slots" class="slots-grid"></div>
+          <p id="sr-horario-selecionado" class="muted">Selecione um horário para confirmar.</p>
+
+          <input id="sr-data" type="hidden" />
+          <input id="sr-hora" type="hidden" />
+          <button class="btn-primary auth-submit" type="submit">Agendar agora</button>
+        </form>
+
+        <p id="agendar-info" class="muted auth-status"></p>
+      </div>
+
+      <p class="auth-footnote">
+        <a class="auth-integralis-link" href="https://integralissolucoes.com.br" target="_blank" rel="noopener noreferrer">Criado por Integralissolucoes</a>
+      </p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/config.js"></script>
+  <script src="./js/supabaseClient.js"></script>
+  <script src="./js/utils.js"></script>
+  <script src="./js/auth.js"></script>
+  <script src="./js/login.js"></script>
+</body>
+</html>
+
+
+

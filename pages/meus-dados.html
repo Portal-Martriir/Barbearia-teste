@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Meus Dados | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html" data-admin-only>Dashboard</a>
+          <a href="./cadastro.html" data-admin-only>Cadastros</a>
+          <a href="./agenda.html" data-admin-only>Agenda</a>
+          <a href="./configuracoes.html" data-admin-only>Configuracoes gerais</a>
+          <a href="./financeiro.html" data-admin-only>Financeiro</a>
+
+          <a href="./barbeiro.html" data-barber-only>Painel Barbeiro</a>
+          <a href="./agenda-barbeiro.html" data-barber-only>Agenda do barbeiro</a>
+          <a href="./financeiro-barbeiro.html" data-barber-only>Financeiro barbeiro</a>
+          <a href="./configuracoes-barbeiro.html" data-barber-only>Meus horarios</a>
+
+          <a href="./cliente.html" data-client-only>Dashboard Cliente</a>
+          <a href="./cliente-agendamento.html" data-client-only>Agendar novo horario</a>
+          <a href="./meus-agendamentos.html" data-client-only>Meus agendamentos</a>
+
+          <a href="./meus-dados.html">Meus dados</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button
+            id="btn-menu-toggle"
+            class="menu-toggle"
+            type="button"
+            aria-label="Abrir menu"
+            aria-controls="main-sidebar"
+            aria-expanded="false"
+          >&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Meus dados</h1>
+        <p class="muted">Informacoes da conta atualmente logada.</p>
+
+        <section class="card">
+          <form class="form-row" aria-label="Dados do usuario atual">
+            <label>Nome
+              <input id="meus-dados-nome" type="text" readonly />
+            </label>
+            <label>Telefone
+              <input id="meus-dados-telefone" type="text" readonly />
+            </label>
+            <label>Email
+              <input id="meus-dados-email" type="email" readonly />
+            </label>
+            <label>Data de nascimento
+              <input id="meus-dados-nascimento" type="text" readonly />
+            </label>
+          </form>
+          <p id="meus-dados-info" class="muted"></p>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/meusDados.js"></script>
+</body>
+</html>

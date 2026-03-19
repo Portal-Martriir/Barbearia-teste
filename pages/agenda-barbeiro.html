@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Agenda do Barbeiro | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html" data-admin-only>Dashboard</a>
+          <a href="./cadastro.html" data-admin-only>Cadastros</a>
+          <a href="./agenda.html" data-admin-only>Agenda</a>
+          <a href="./configuracoes.html" data-admin-only>Configuracoes gerais</a>
+          <a href="./barbeiro.html">Painel Barbeiro</a>
+          <a href="./agenda-barbeiro.html">Agenda do barbeiro</a>
+          <a href="./financeiro-barbeiro.html">Financeiro barbeiro</a>
+          <a href="./configuracoes-barbeiro.html">Meus horarios</a>
+          <a href="./financeiro.html" data-admin-only>Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Agenda do Barbeiro</h1>
+        <p id="agenda-barbeiro-info" class="muted"></p>
+
+        <div class="auth-tab-wrap auth-tab-wrap-3" role="tablist" aria-label="Seções da agenda do barbeiro">
+          <button type="button" class="auth-tab-btn active" data-agenda-barbeiro-tab="agendamentos" role="tab">Agendamentos</button>
+          <button type="button" class="auth-tab-btn" data-agenda-barbeiro-tab="registro" role="tab">Registro</button>
+          <button type="button" class="auth-tab-btn" data-agenda-barbeiro-tab="manual" role="tab">Lançamento manual</button>
+        </div>
+
+        <section class="card">
+          <div class="auth-panel active" id="agenda-barbeiro-panel-agendamentos">
+            <div class="rowBetween">
+              <h3>Agendamentos</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido da agenda do barbeiro">
+                  <button type="button" class="quick-filter-btn active" data-agenda-barbeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-agenda-barbeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-agenda-barbeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-agenda-barbeiro" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="agenda-barbeiro-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row compact-filters">
+                <label>Periodo
+                  <select id="agenda-periodo-barbeiro">
+                    <option value="dia">Dia</option>
+                    <option value="semana">Semana</option>
+                    <option value="mes">Mes</option>
+                    <option value="personalizado">Periodo personalizado</option>
+                  </select>
+                </label>
+                <label id="agenda-barbeiro-inicio-wrap" hidden>Data inicial
+                  <input id="agenda-data-inicio-barbeiro" type="date" />
+                </label>
+                <label id="agenda-barbeiro-fim-wrap" hidden>Data final
+                  <input id="agenda-data-fim-barbeiro" type="date" />
+                </label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-aplicar-filtro-agenda-barbeiro" type="button" class="btn-primary">Aplicar filtro</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Horario</th>
+                    <th>Cliente</th>
+                    <th>Telefone</th>
+                    <th>Servico</th>
+                    <th>Status</th>
+                    <th>Pagamento</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="lista-agenda-barbeiro"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="auth-panel" id="agenda-barbeiro-panel-registro">
+            <h3>Registro</h3>
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Telefone</th>
+                    <th>Servico</th>
+                    <th>Valor</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>Motivo</th>
+                    <th>Status pagamento</th>
+                  </tr>
+                </thead>
+                <tbody id="historico-barbeiro-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="auth-panel" id="agenda-barbeiro-panel-manual">
+            <section class="card section-space-top">
+              <div class="rowBetween">
+                <div>
+                  <h3>Lancar horario manual</h3>
+                  <p class="muted">Crie um agendamento manual apenas para um usuario cliente ja cadastrado no sistema.</p>
+                </div>
+              </div>
+
+              <div class="password-user-picker section-space-top">
+                <div class="form-row password-search-row">
+                  <label>Buscar usuario cliente
+                    <input id="manual-cliente-busca" type="search" placeholder="Buscar por nome, e-mail ou telefone" />
+                  </label>
+                  <button id="btn-buscar-manual-cliente" type="button" class="btn-secondary">Buscar usuario</button>
+                </div>
+
+                <div id="manual-cliente-selecionado" class="password-selected-user password-selected-user-card">
+                  Selecione um usuario cliente para vincular o horario manual.
+                </div>
+
+                <div id="manual-cliente-lista" class="password-user-list" role="listbox" aria-label="Usuarios clientes cadastrados">
+                  <div class="password-empty-state">Carregando usuarios clientes...</div>
+                </div>
+              </div>
+
+              <div class="form-row section-space-top">
+                <label>E-mail do usuario
+                  <input id="manual-cliente-email" type="text" readonly />
+                </label>
+                <label>Telefone do usuario
+                  <input id="manual-cliente-telefone" type="text" readonly />
+                </label>
+                <label>Servico
+                  <select id="manual-servico"></select>
+                </label>
+              </div>
+
+              <div class="calendar-card section-space-top">
+                <div class="rowBetween">
+                  <button id="btn-manual-cal-prev" type="button" class="btn-secondary">Mes anterior</button>
+                  <strong id="manual-cal-title">Calendario</strong>
+                  <button id="btn-manual-cal-next" type="button" class="btn-secondary">Proximo mes</button>
+                </div>
+                <div class="calendar-weekdays">
+                  <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sab</span>
+                </div>
+                <div id="manual-calendar-grid" class="calendar-grid"></div>
+              </div>
+
+              <p class="muted">Data selecionada: <strong id="manual-data-label">-</strong></p>
+              <input id="manual-data" type="hidden" />
+
+              <div class="section-space-top">
+                <h3>Horarios disponiveis</h3>
+                <div id="manual-slots" class="slots-grid">
+                  <p class="muted">Selecione servico e data para ver os horarios disponiveis.</p>
+                </div>
+                <p id="manual-horario-selecionado" class="muted">Selecione um horario para confirmar.</p>
+              </div>
+
+              <div class="section-actions">
+                <button id="btn-salvar-manual-barbeiro" type="button" class="btn-primary">Salvar agendamento manual</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/agendaBarbeiro.js"></script>
+</body>
+</html>

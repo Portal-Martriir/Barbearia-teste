@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Agenda | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./cadastro.html">Cadastros</a>
+          <a href="./agenda.html">Agenda</a>
+          <a href="./configuracoes.html">Configuracoes gerais</a>
+          <a href="./financeiro.html">Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Agenda</h1>
+        <p id="agenda-info" class="muted"></p>
+
+        <section class="card">
+          <div class="rowBetween">
+            <div>
+              <h3>Visualizacao da agenda</h3>
+              <p class="muted">Periodo selecionado: <strong id="agenda-data-label">-</strong></p>
+            </div>
+            <div class="agenda-toolbar">
+              <div class="quick-filter-group" aria-label="Filtro rapido de periodo">
+                <button type="button" class="quick-filter-btn active" data-quick-period="dia">Dia</button>
+                <button type="button" class="quick-filter-btn" data-quick-period="semana">Semana</button>
+                <button type="button" class="quick-filter-btn" data-quick-period="mes">Mes</button>
+              </div>
+              <button id="btn-toggle-filtro-agenda-admin" type="button" class="btn-secondary">Filtro</button>
+            </div>
+          </div>
+
+          <div id="agenda-filtros-panel" class="agenda-filter-panel">
+            <div class="form-row compact-filters">
+              <label>Barbeiro
+                <select id="filtro-barbeiro"></select>
+              </label>
+              <label>Periodo
+                <select id="agenda-periodo-admin">
+                  <option value="dia">Dia</option>
+                  <option value="semana">Semana</option>
+                  <option value="mes">Mes</option>
+                  <option value="personalizado">Personalizado</option>
+                </select>
+              </label>
+              <label id="agenda-admin-inicio-wrap" hidden>Data inicial
+                <input id="agenda-data-inicio-admin" type="date" />
+              </label>
+              <label id="agenda-admin-fim-wrap" hidden>Data final
+                <input id="agenda-data-fim-admin" type="date" />
+              </label>
+            </div>
+
+            <div class="section-actions">
+              <button id="btn-aplicar-filtro-agenda-admin" type="button" class="btn-primary">Aplicar filtro</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Barbeiro</th>
+                <th>Servico</th>
+                <th>Horario</th>
+                <th>Status</th>
+                <th>Pagamento</th>
+                <th>Valor</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody id="lista-agendamentos"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/agenda.js"></script>
+</body>
+</html>

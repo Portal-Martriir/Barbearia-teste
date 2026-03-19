@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Meus Horarios | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html" data-admin-only>Dashboard</a>
+          <a href="./cadastro.html" data-admin-only>Cadastros</a>
+          <a href="./agenda.html" data-admin-only>Agenda</a>
+          <a href="./configuracoes.html" data-admin-only>Configuracoes gerais</a>
+          <a href="./barbeiro.html">Painel Barbeiro</a>
+          <a href="./agenda-barbeiro.html">Agenda do barbeiro</a>
+          <a href="./financeiro-barbeiro.html">Financeiro barbeiro</a>
+          <a href="./configuracoes-barbeiro.html">Meus horarios</a>
+          <a href="./financeiro.html" data-admin-only>Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Meus horarios</h1>
+        <p id="config-barbeiro-info" class="muted"></p>
+
+        <section class="card">
+          <div class="form-row">
+            <label>Semana de referencia
+              <input id="cfgb-semana-ref" type="date" />
+            </label>
+          </div>
+        </section>
+
+        <section class="card table-wrap">
+          <h3>Horario semanal</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Dia</th>
+                <th>Data (semana ref.)</th>
+                <th>Ativo</th>
+                <th>Inicio</th>
+                <th>Inicio intervalo</th>
+                <th>Volta</th>
+                <th>Fim</th>
+                <th>Intervalo (min)</th>
+              </tr>
+            </thead>
+            <tbody id="cfgb-horarios-body"></tbody>
+          </table>
+          <div class="section-actions">
+            <button id="btn-salvar-meus-horarios" type="button" class="btn-primary">Salvar meus horarios</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/configuracoesBarbeiro.js"></script>
+</body>
+</html>

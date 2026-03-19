@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
+  <script src="../js/security.js?v=20260318d"></script>
+  <title>Painel do Barbeiro | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css?v=20260318d" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html" data-admin-only>Dashboard</a>
+          <a href="./cadastro.html" data-admin-only>Cadastros</a>
+          <a href="./agenda.html" data-admin-only>Agenda</a>
+          <a href="./configuracoes.html" data-admin-only>Configuracoes gerais</a>
+          <a href="./barbeiro.html">Painel Barbeiro</a>
+          <a href="./agenda-barbeiro.html">Agenda do barbeiro</a>
+          <a href="./financeiro-barbeiro.html">Financeiro barbeiro</a>
+          <a href="./configuracoes-barbeiro.html">Meus horarios</a>
+          <a href="./financeiro.html" data-admin-only>Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Painel do Barbeiro</h1>
+        <p id="barbeiro-info" class="muted"></p>
+
+        <section class="grid">
+          <article class="card">
+            <h3>Proximos clientes</h3>
+            <div id="card-proximos-clientes" class="muted">Sem proximos clientes.</div>
+          </article>
+          <article class="card"><h3>Agendamentos no periodo</h3><div id="card-agendamentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Concluidos no periodo</h3><div id="card-atendimentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Cancelados no periodo</h3><div id="card-cancelados-hoje" class="value">0</div></article>
+          <article class="card"><h3>Faturado no periodo</h3><div id="card-faturado-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Comissao no periodo</h3><div id="card-comissao-hoje" class="value">R$ 0,00</div></article>
+        </section>
+
+        <section class="card">
+          <div class="rowBetween">
+            <h3>Agenda do barbeiro</h3>
+            <div class="agenda-toolbar">
+              <div class="quick-filter-group" aria-label="Filtro rapido do painel do barbeiro">
+                <button type="button" class="quick-filter-btn active" data-barbeiro-quick-period="dia">Dia</button>
+                <button type="button" class="quick-filter-btn" data-barbeiro-quick-period="semana">Semana</button>
+                <button type="button" class="quick-filter-btn" data-barbeiro-quick-period="mes">Mes</button>
+              </div>
+              <button id="btn-toggle-filtro-barbeiro" type="button" class="btn-secondary">Filtro</button>
+            </div>
+          </div>
+          <div id="barbeiro-filtros-panel" class="agenda-filter-panel">
+            <div class="form-row compact-filters">
+              <label>Periodo
+                <select id="barbeiro-periodo">
+                  <option value="hoje">Hoje</option>
+                  <option value="ontem">Ontem</option>
+                  <option value="semana">Esta semana</option>
+                  <option value="mes">Este mes</option>
+                  <option value="personalizado">Periodo personalizado</option>
+                </select>
+              </label>
+              <label id="barbeiro-data-inicio-wrap" hidden>Data inicial
+                <input id="agenda-data-inicio-barbeiro" type="date" />
+              </label>
+              <label id="barbeiro-data-fim-wrap" hidden>Data final
+                <input id="agenda-data-fim-barbeiro" type="date" />
+              </label>
+            </div>
+            <div class="section-actions">
+              <button id="btn-aplicar-filtro-barbeiro" type="button" class="btn-primary">Aplicar filtro</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Horario</th>
+                  <th>Cliente</th>
+                  <th>Telefone</th>
+                  <th>Servico</th>
+                  <th>Status</th>
+                  <th>Pagamento</th>
+                  <th>Motivo</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-agenda-barbeiro"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <div id="barbeiro-modal-root" class="app-modal-root" hidden aria-hidden="true">
+    <button id="barbeiro-modal-backdrop" class="app-modal-backdrop" type="button" aria-label="Fechar modal"></button>
+    <div class="app-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="barbeiro-modal-title" aria-describedby="barbeiro-modal-message">
+      <button id="barbeiro-modal-close" type="button" class="app-modal-close" aria-label="Fechar modal">&times;</button>
+      <div class="app-modal-header">
+        <h3 id="barbeiro-modal-title">Atualizar agendamento</h3>
+        <p id="barbeiro-modal-message" class="muted"></p>
+      </div>
+      <form id="barbeiro-modal-form" class="app-modal-form">
+        <div class="app-modal-fields">
+          <label>Motivo
+            <textarea id="barbeiro-modal-motivo" rows="4" placeholder="Descreva o motivo"></textarea>
+          </label>
+        </div>
+        <p id="barbeiro-modal-error" class="error" hidden></p>
+        <div class="app-modal-actions">
+          <button id="barbeiro-modal-cancel" type="button" class="btn-secondary">Voltar</button>
+          <button id="barbeiro-modal-confirm" type="submit" class="btn-primary">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js?v=20260318d"></script>
+  <script src="../js/supabaseClient.js?v=20260318d"></script>
+  <script src="../js/utils.js?v=20260318d"></script>
+  <script src="../js/auth.js?v=20260318d"></script>
+  <script src="../js/common.js?v=20260318d"></script>
+  <script src="../js/api.js?v=20260318d"></script>
+  <script src="../js/barbeiro.js?v=20260318d"></script>
+</body>
+</html>

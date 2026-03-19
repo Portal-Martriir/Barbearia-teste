@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Financeiro | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./cadastro.html">Cadastros</a>
+          <a href="./agenda.html">Agenda</a>
+          <a href="./configuracoes.html">Configuracoes gerais</a>
+          <a href="./financeiro.html">Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Financeiro (Admin)</h1>
+        <p id="financeiro-info" class="muted"></p>
+
+        <div class="auth-panel active" id="financeiro-panel-geral">
+          <section class="card">
+            <h3>Visao geral da barbearia</h3>
+            <p class="muted">Resumo consolidado: receitas de servicos menos despesas.</p>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <h3>Filtro da visao geral</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido da visao geral">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="geral" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-geral" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-geral-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="f-data-inicio" type="date" /></label>
+                <label>Data fim<input id="f-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="f-barbeiro"></select></label>
+                <label>Servico (nome)<input id="f-servico" placeholder="Ex: corte" /></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-financeiro" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid">
+            <article class="card"><h3>Faturamento diario</h3><div class="value" id="fat-diario">R$ 0,00</div></article>
+            <article class="card"><h3>Faturamento semanal</h3><div class="value" id="fat-semanal">R$ 0,00</div></article>
+            <article class="card"><h3>Faturamento mensal</h3><div class="value" id="fat-mensal">R$ 0,00</div></article>
+            <article class="card"><h3>Comissoes totais (barbeiros)</h3><div class="value" id="total-comissoes">R$ 0,00</div></article>
+            <article class="card"><h3>Contas a receber</h3><div class="value" id="total-contas-receber">R$ 0,00</div></article>
+            <article class="card"><h3>Lucro liquido (admin)</h3><div class="value" id="lucro-liquido-admin">R$ 0,00</div></article>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Movimentacoes gerais da barbearia</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Origem</th>
+                  <th>Descricao</th>
+                  <th>Detalhe</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="lista-financeiro"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="financeiro-panel-receitas">
+          <section class="card">
+            <div class="rowBetween">
+              <h3>Filtro de receitas</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de receitas">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="receitas" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-receitas" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-receitas-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="rs-data-inicio" type="date" /></label>
+                <label>Data fim<input id="rs-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="rs-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-receitas-servicos" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid">
+            <article class="card"><h3>Receitas de servicos (filtro)</h3><div class="value" id="rs-total">R$ 0,00</div></article>
+            <article class="card"><h3>Receitas pagas</h3><div class="value" id="rs-pago">R$ 0,00</div></article>
+            <article class="card"><h3>Total de atendimentos</h3><div class="value" id="rs-qtd">0</div></article>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Historico de receitas de servicos</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Barbeiro</th>
+                  <th>Cliente</th>
+                  <th>Servico</th>
+                  <th>Valor</th>
+                  <th>Status pagamento</th>
+                  <th>Forma pagto</th>
+                </tr>
+              </thead>
+              <tbody id="lista-receitas-historico"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="financeiro-panel-despesas">
+          <section class="card">
+            <h3>Lancar despesa</h3>
+            <form id="form-despesa-manual">
+              <div class="form-row">
+                <label>Categoria
+                  <select id="fd-categoria" required></select>
+                </label>
+                <label>Valor (R$)
+                  <input id="fd-valor" type="number" min="0" step="0.01" required />
+                </label>
+                <label>Data
+                  <input id="fd-data" type="date" required />
+                </label>
+              </div>
+              <label>Observacao
+                <textarea id="fd-observacao" placeholder="Opcional"></textarea>
+              </label>
+              <button type="submit" class="btn-primary">Salvar despesa</button>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <h3>Filtro de despesas</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de despesas">
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="despesas" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-despesas" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-despesas-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="d-data-inicio" type="date" /></label>
+                <label>Data fim<input id="d-data-fim" type="date" /></label>
+                <label>Categoria<select id="d-categoria"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-despesas" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid">
+            <article class="card"><h3>Total despesas (filtro)</h3><div class="value" id="despesas-total">R$ 0,00</div></article>
+            <article class="card"><h3>Total hoje</h3><div class="value" id="despesas-hoje">R$ 0,00</div></article>
+            <article class="card"><h3>Total semana</h3><div class="value" id="despesas-semana">R$ 0,00</div></article>
+            <article class="card"><h3>Total mes</h3><div class="value" id="despesas-mes">R$ 0,00</div></article>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Lista de despesas</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descricao</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Observacao</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-despesas-financeiro"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="financeiro-panel-contas">
+          <section class="card table-wrap">
+            <h3>Servicos para lancar em contas a receber</h3>
+            <p class="muted">Use quando o servico foi realizado, mas o cliente nao pagou no momento.</p>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Cliente</th>
+                  <th>Barbeiro</th>
+                  <th>Servico</th>
+                  <th>Valor</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-servicos-para-receber"></tbody>
+            </table>
+          </section>
+
+          <section class="card">
+            <h3>Lancar conta a receber (manual)</h3>
+            <form id="form-conta-receber-manual">
+              <div class="form-row">
+                <label>Descricao
+                  <input id="cr-descricao" placeholder="Ex: Sinal pendente" required />
+                </label>
+                <label>Categoria
+                  <input id="cr-categoria" placeholder="Ex: Outros recebimentos" />
+                </label>
+                <label>Valor (R$)
+                  <input id="cr-valor" type="number" min="0" step="0.01" required />
+                </label>
+                <label>Data
+                  <input id="cr-data" type="date" required />
+                </label>
+              </div>
+              <label>Observacao
+                <textarea id="cr-observacao" placeholder="Opcional"></textarea>
+              </label>
+              <button type="submit" class="btn-primary">Salvar conta a receber</button>
+            </form>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Historico de contas a receber</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Origem</th>
+                  <th>Cliente/Descricao</th>
+                  <th>Barbeiro/Categoria</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-contas-receber"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="financeiro-panel-repasse">
+          <section class="card">
+            <h3>Quanto pagar para cada barbeiro</h3>
+            <p class="muted">Considera apenas servicos com pagamento confirmado (pago).</p>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <h3>Filtro de repasse</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido de repasse">
+                  <button type="button" class="quick-filter-btn active" data-financeiro-quick-target="repasse" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="repasse" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="repasse" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-repasse" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-repasse-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="rp-data-inicio" type="date" /></label>
+                <label>Data fim<input id="rp-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="rp-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-repasse" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid">
+            <article class="card"><h3>Total a pagar (filtro)</h3><div class="value" id="repasse-total">R$ 0,00</div></article>
+            <article class="card"><h3>Qtd. barbeiros</h3><div class="value" id="repasse-qtd-barbeiros">0</div></article>
+            <article class="card"><h3>Qtd. atendimentos pagos</h3><div class="value" id="repasse-qtd-atendimentos">0</div></article>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Repasse por barbeiro</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Barbeiro</th>
+                  <th>Atendimentos pagos</th>
+                  <th>Faturamento base</th>
+                  <th>Comissao a pagar</th>
+                </tr>
+              </thead>
+              <tbody id="lista-repasse-barbeiros"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="financeiro-panel-liquido">
+          <section class="card">
+            <h3>Liquido da empresa</h3>
+            <p class="muted">Receita de servicos pagos menos despesas e comissoes dos barbeiros.</p>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <h3>Filtro do liquido</h3>
+              <div class="agenda-toolbar">
+                <div class="quick-filter-group" aria-label="Filtro rapido do liquido da empresa">
+                  <button type="button" class="quick-filter-btn active" data-financeiro-quick-target="liquido" data-financeiro-quick-period="dia">Dia</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="liquido" data-financeiro-quick-period="semana">Semana</button>
+                  <button type="button" class="quick-filter-btn" data-financeiro-quick-target="liquido" data-financeiro-quick-period="mes">Mes</button>
+                </div>
+                <button id="btn-toggle-filtro-financeiro-liquido" type="button" class="btn-secondary">Filtro</button>
+              </div>
+            </div>
+            <div id="financeiro-liquido-filtros-panel" class="agenda-filter-panel">
+              <div class="form-row">
+                <label>Data inicio<input id="lq-data-inicio" type="date" /></label>
+                <label>Data fim<input id="lq-data-fim" type="date" /></label>
+                <label>Barbeiro<select id="lq-barbeiro"></select></label>
+              </div>
+              <div class="section-actions">
+                <button id="btn-filtrar-liquido" type="button" class="btn-secondary">Aplicar filtros</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="grid">
+            <article class="card"><h3>Receita (servicos pagos)</h3><div class="value" id="lq-receita">R$ 0,00</div></article>
+            <article class="card"><h3>Despesas</h3><div class="value" id="lq-despesas">R$ 0,00</div></article>
+            <article class="card"><h3>Comissoes barbeiros</h3><div class="value" id="lq-comissoes">R$ 0,00</div></article>
+            <article class="card"><h3>Resultado liquido</h3><div class="value" id="lq-liquido">R$ 0,00</div></article>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Resumo por dia</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Receita</th>
+                  <th>Despesas</th>
+                  <th>Comissoes</th>
+                  <th>Liquido</th>
+                </tr>
+              </thead>
+              <tbody id="lista-liquido"></tbody>
+            </table>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/financeiro.js"></script>
+</body>
+</html>

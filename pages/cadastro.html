@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Cadastros | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./cadastro.html">Cadastros</a>
+          <a href="./agenda.html">Agenda</a>
+          <a href="./configuracoes.html">Configuracoes gerais</a>
+          <a href="./financeiro.html">Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Cadastros</h1>
+        <p id="cadastro-info" class="muted"></p>
+
+        <div class="auth-panel active" id="cadastro-panel-usuarios">
+          <section class="card user-subtabs-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Gerenciar usuarios</h3>
+                <p class="muted">Escolha o perfil que deseja visualizar e administrar.</p>
+              </div>
+            </div>
+
+            <div class="user-subtab-grid">
+              <button type="button" class="user-subtab-btn active" data-usuario-subtab="usuarios">
+                <span class="user-subtab-kicker">Perfil</span>
+                <strong>Clientes</strong>
+                <small>Usuarios finais cadastrados no sistema.</small>
+                <span id="usuarios-count-clientes" class="user-subtab-count">0</span>
+              </button>
+              <button type="button" class="user-subtab-btn" data-usuario-subtab="barbeiros">
+                <span class="user-subtab-kicker">Equipe</span>
+                <strong>Barbeiros</strong>
+                <small>Profissionais com comissao e agenda ativa.</small>
+                <span id="usuarios-count-barbeiros" class="user-subtab-count">0</span>
+              </button>
+              <button type="button" class="user-subtab-btn" data-usuario-subtab="admin">
+                <span class="user-subtab-kicker">Controle</span>
+                <strong>Administradores</strong>
+                <small>Usuarios com acesso de gestao do sistema.</small>
+                <span id="usuarios-count-admin" class="user-subtab-count">0</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <div>
+                <h3>Filtrar usuarios</h3>
+                <p id="usuarios-subtab-info" class="muted"></p>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Busca
+                <input id="usuarios-filtro-busca" type="search" placeholder="Buscar por nome, e-mail ou telefone" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Usuarios cadastrados</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Email</th>
+                  <th>Telefone</th>
+                  <th>Nascimento</th>
+                  <th>Perfil</th>
+                  <th>Comissao</th>
+                  <th>Ativo</th>
+                  <th>Acao</th>
+                </tr>
+              </thead>
+              <tbody id="lista-usuarios"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="cadastro-panel-servicos">
+          <section class="card">
+            <h3>Cadastrar servico</h3>
+            <form id="form-servico">
+              <div class="form-row">
+                <label>
+                  Nome do servico
+                  <input id="servico-nome" type="text" placeholder="Ex: Corte + Barba" required />
+                </label>
+                <label>
+                  Preco (R$)
+                  <input id="servico-preco" type="number" min="0" step="0.01" placeholder="Ex: 45.00" required />
+                </label>
+                <label>
+                  Duracao (minutos)
+                  <input id="servico-duracao" type="number" min="5" step="5" placeholder="Ex: 45" required />
+                </label>
+              </div>
+              <button type="submit" class="btn-primary">Salvar servico</button>
+            </form>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Servicos cadastrados</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Preco</th>
+                  <th>Duracao</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-servicos"></tbody>
+            </table>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="cadastro-panel-despesas">
+          <section class="card">
+            <h3>Cadastrar categoria de despesa</h3>
+            <form id="form-categoria-despesa">
+              <div class="form-row">
+                <label>
+                  Categoria
+                  <input id="categoria-despesa-nome" type="text" placeholder="Ex: Infraestrutura" required />
+                </label>
+              </div>
+              <button type="submit" class="btn-primary">Salvar categoria</button>
+            </form>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Categorias de despesa</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="lista-categorias-despesa"></tbody>
+            </table>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="app-modal-root" class="app-modal-root" hidden aria-hidden="true">
+    <div id="app-modal-backdrop" class="app-modal-backdrop"></div>
+    <div
+      id="app-modal-dialog"
+      class="app-modal-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="app-modal-title"
+      aria-describedby="app-modal-message"
+    >
+      <button id="app-modal-close" type="button" class="app-modal-close" aria-label="Fechar modal">&times;</button>
+      <div class="app-modal-header">
+        <h3 id="app-modal-title">Modal</h3>
+        <p id="app-modal-message" class="muted"></p>
+      </div>
+      <form id="app-modal-form" class="app-modal-form">
+        <div id="app-modal-fields" class="app-modal-fields"></div>
+        <p id="app-modal-error" class="error" hidden></p>
+        <div class="app-modal-actions">
+          <button id="app-modal-cancel" type="button" class="btn-secondary">Cancelar</button>
+          <button id="app-modal-confirm" type="submit" class="btn-primary">Confirmar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/cadastro.js"></script>
+</body>
+</html>

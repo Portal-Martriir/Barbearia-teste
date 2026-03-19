@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <title>Dashboard | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css?v=20260318d" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./cadastro.html">Cadastros</a>
+          <a href="./agenda.html">Agenda</a>
+          <a href="./configuracoes.html">Configuracoes gerais</a>
+          <a href="./financeiro.html">Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button
+            id="btn-menu-toggle"
+            class="menu-toggle"
+            type="button"
+            aria-label="Abrir menu"
+            aria-controls="main-sidebar"
+            aria-expanded="false"
+          >&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Dashboard (Admin)</h1>
+        <p id="dashboard-info" class="muted"></p>
+
+        <section class="card">
+          <div class="form-row">
+            <label>Periodo
+              <select id="dashboard-periodo">
+                <option value="hoje">Hoje</option>
+                <option value="semana">Semana</option>
+                <option value="mes">Mes</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section class="grid">
+          <article class="card"><h3>Total faturado</h3><div id="total-faturado-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Atendimentos</h3><div id="atendimentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Agendamentos</h3><div id="agendamentos-hoje" class="value">0</div></article>
+          <article class="card"><h3>Cancelados</h3><div id="cancelados-hoje" class="value">0</div></article>
+          <article class="card"><h3>Barbeiro destaque</h3><div id="top-barbeiro-hoje" class="value">-</div></article>
+          <article class="card"><h3>Comissoes</h3><div id="dashboard-comissoes-hoje" class="value">R$ 0,00</div></article>
+          <article class="card"><h3>Lucro liquido</h3><div id="dashboard-liquido-hoje" class="value">R$ 0,00</div></article>
+        </section>
+
+        <section class="dashboard-charts">
+          <article class="card chart-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Evolucao financeira</h3>
+                <p class="muted">Receita bruta, comissoes e lucro liquido no periodo.</p>
+              </div>
+            </div>
+            <div id="dashboard-chart-series" class="chart-series" aria-live="polite"></div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Ranking de barbeiros</h3>
+                <p class="muted">Faturamento bruto por barbeiro no periodo selecionado.</p>
+              </div>
+            </div>
+            <div id="dashboard-chart-ranking" class="chart-ranking" aria-live="polite"></div>
+          </article>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js?v=20260318d"></script>
+  <script src="../js/supabaseClient.js?v=20260318d"></script>
+  <script src="../js/utils.js?v=20260318d"></script>
+  <script src="../js/auth.js?v=20260318d"></script>
+  <script src="../js/common.js?v=20260318d"></script>
+  <script src="../js/api.js?v=20260318d"></script>
+  <script src="../js/dashboard.js?v=20260318d"></script>
+</body>
+</html>

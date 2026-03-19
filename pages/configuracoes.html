@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; block-all-mixed-content" />
+  <script src="../js/security.js"></script>
+  <title>Configuracoes | INTEGRALISSOLUCOES</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body class="app-page">
+  <button id="sidebar-overlay" class="sidebar-overlay" type="button" aria-label="Fechar menu"></button>
+
+  <div class="app-shell">
+    <aside id="main-sidebar" class="sidebar" aria-label="Menu de navegação">
+      <div class="sidebar-card">
+        <span class="brand">INTEGRALISSOLUCOES</span>
+        <nav class="nav">
+          <a href="./dashboard.html">Dashboard</a>
+          <a href="./cadastro.html">Cadastros</a>
+          <a href="./agenda.html">Agenda</a>
+          <a href="./configuracoes.html">Configuracoes gerais</a>
+          <a href="./financeiro.html">Financeiro</a>
+        </nav>
+        <div class="sidebar-user">
+          <span data-user-name></span>
+          <button data-logout class="btn-secondary">Sair</button>
+        </div>
+      </div>
+    </aside>
+
+    <div class="content-area">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <button id="btn-menu-toggle" class="menu-toggle" type="button" aria-label="Abrir menu" aria-controls="main-sidebar" aria-expanded="false">&#9776;</button>
+          <span class="brand">INTEGRALISSOLUCOES</span>
+          <div>
+            <span data-user-name></span>
+            <button data-logout class="btn-secondary">Sair</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="container">
+        <h1>Configuracoes gerais</h1>
+        <p id="config-info" class="muted"></p>
+
+        <div class="auth-tab-wrap">
+          <button type="button" class="auth-tab-btn active" data-config-tab="horarios">Horarios</button>
+          <button type="button" class="auth-tab-btn" data-config-tab="senhas">Senhas</button>
+        </div>
+
+        <div class="auth-panel active" id="config-panel-horarios">
+          <section class="card">
+            <div class="rowBetween">
+              <div>
+                <h3>Horarios por barbeiro</h3>
+                <p class="muted">A disponibilidade do agendamento passa a considerar somente os horarios configurados para cada barbeiro.</p>
+              </div>
+            </div>
+
+            <div class="form-row" id="cfg-barbeiro-wrap">
+              <label>Barbeiro
+                <select id="cfg-barbeiro"></select>
+              </label>
+              <label>Semana de referencia
+                <input id="cfg-semana-ref" type="date" />
+              </label>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="rowBetween">
+              <div>
+                <h3>Confirmacao por WhatsApp</h3>
+                <p class="muted">Defina se, ao finalizar o agendamento, o cliente precisa obrigatoriamente abrir a mensagem no WhatsApp do barbeiro.</p>
+              </div>
+            </div>
+
+            <p id="cfg-whatsapp-info" class="muted"></p>
+
+            <div class="form-row">
+              <label class="status-switch">
+                <input id="cfg-whatsapp-obrigatorio" type="checkbox" />
+                <span class="status-switch-track">
+                  <span class="status-switch-thumb"></span>
+                </span>
+                <span id="cfg-whatsapp-obrigatorio-label" class="status-switch-label">Obrigatorio</span>
+              </label>
+            </div>
+
+            <div class="section-actions">
+              <button id="btn-salvar-config-whatsapp" type="button" class="btn-primary">Salvar configuracao do WhatsApp</button>
+            </div>
+          </section>
+
+          <section class="card table-wrap">
+            <h3>Horario semanal do barbeiro</h3>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Dia</th>
+                  <th>Data (semana ref.)</th>
+                  <th>Ativo</th>
+                  <th>Inicio</th>
+                  <th>Inicio intervalo</th>
+                  <th>Volta</th>
+                  <th>Fim</th>
+                  <th>Intervalo (min)</th>
+                </tr>
+              </thead>
+              <tbody id="cfg-barbeiro-horarios-body"></tbody>
+            </table>
+            <div class="section-actions">
+              <button id="btn-salvar-horarios-barbeiro" type="button" class="btn-primary">Salvar horarios do barbeiro</button>
+            </div>
+          </section>
+        </div>
+
+        <div class="auth-panel" id="config-panel-senhas">
+          <section class="card password-admin-card">
+            <div class="rowBetween">
+              <div>
+                <h3>Trocar senha de usuarios</h3>
+                <p class="muted">Selecione um usuario, defina a nova senha e confirme a alteracao com validacao.</p>
+              </div>
+            </div>
+
+            <p id="cfg-password-info" class="muted"></p>
+
+            <div class="password-admin-grid">
+              <div class="password-user-picker">
+                <div class="form-row password-search-row">
+                  <label>Pesquisar usuario
+                    <input id="cfg-user-search" type="search" placeholder="Buscar por nome ou e-mail" />
+                  </label>
+                  <button id="btn-buscar-usuario-senha" type="button" class="btn-secondary">Buscar usuario</button>
+                </div>
+
+                <div class="password-selected-user password-selected-user-card" id="cfg-user-preview">
+                  Nenhum usuario selecionado.
+                </div>
+              </div>
+
+              <div class="password-editor-card">
+                <div class="password-selected-user" id="cfg-selected-user">
+                  Selecione um usuario para trocar a senha.
+                </div>
+
+                <div class="form-row password-form-row">
+                  <label>Nova senha
+                    <div class="password-input-wrap">
+                      <input id="cfg-new-password" type="password" minlength="6" autocomplete="new-password" />
+                      <button type="button" class="btn-secondary password-toggle" data-password-toggle="cfg-new-password">Mostrar</button>
+                    </div>
+                  </label>
+
+                  <label>Confirmar nova senha
+                    <div class="password-input-wrap">
+                      <input id="cfg-confirm-password" type="password" minlength="6" autocomplete="new-password" />
+                      <button type="button" class="btn-secondary password-toggle" data-password-toggle="cfg-confirm-password">Mostrar</button>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="section-actions">
+                  <button id="btn-salvar-senha-usuario" type="button" class="btn-primary">Salvar nova senha</button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="app-modal-root" id="cfg-user-modal-root" hidden aria-hidden="true">
+    <button class="app-modal-backdrop" id="cfg-user-modal-backdrop" type="button" aria-label="Fechar selecao de usuario"></button>
+    <div class="app-modal-dialog password-picker-modal">
+      <button class="app-modal-close" id="cfg-user-modal-close" type="button" aria-label="Fechar">&times;</button>
+      <div class="app-modal-header">
+        <h3>Selecionar usuario</h3>
+        <p class="muted">Busque por nome ou e-mail e escolha o usuario que recebera a nova senha.</p>
+      </div>
+      <div class="app-modal-form">
+        <div class="form-row password-search-row">
+          <label>Pesquisar usuario
+            <input id="cfg-user-search-modal" type="search" placeholder="Buscar por nome ou e-mail" />
+          </label>
+          <button id="btn-filtrar-usuario-senha" type="button" class="btn-primary">Buscar</button>
+        </div>
+        <div class="password-user-list" id="cfg-user-list" role="listbox" aria-label="Usuarios cadastrados"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/config.js"></script>
+  <script src="../js/supabaseClient.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/auth.js"></script>
+  <script src="../js/common.js"></script>
+  <script src="../js/configuracoes.js"></script>
+</body>
+</html>
