@@ -40,6 +40,59 @@ window.AppUtils = {
     return new Date(`${dateStr}T${timeStr}`);
   },
 
+  normalizePhone(value) {
+    const digits = String(value || '').replace(/\D/g, '');
+    if (!digits) return '';
+    if (digits.startsWith('55')) return digits;
+    return `55${digits}`;
+  },
+
+  buildWhatsappUrl(phoneValue, message) {
+    const phone = this.normalizePhone(phoneValue);
+    if (!phone || !message) return '';
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  },
+
+  notifyCancelamentoWhatsapp(infoEl, payload = {}) {
+    const status = payload.status === 'desistencia_cliente' ? 'desistencia' : 'cancelamento';
+    const destinoNome = String(payload.destinoNome || (payload.destinoTipo === 'barbeiro' ? 'o barbeiro' : 'o cliente')).trim();
+    const autorNome = String(payload.autorNome || (payload.autorTipo === 'cliente' ? 'Cliente' : 'Barbeiro')).trim();
+    const servicoNome = String(payload.servicoNome || 'o atendimento').trim();
+    const data = this.formatDate(payload.data);
+    const hora = String(payload.hora || '').slice(0, 5);
+    const motivo = String(payload.motivo || '').trim();
+
+    const mensagem = [
+      `Ola, ${destinoNome}.`,
+      `${autorNome} informou ${status === 'desistencia' ? 'uma desistencia' : 'um cancelamento'} no agendamento de ${servicoNome} do dia ${data} as ${hora}.`,
+      motivo ? `Motivo: ${motivo}.` : ''
+    ].filter(Boolean).join(' ');
+
+    const href = this.buildWhatsappUrl(payload.destinoTelefone, mensagem);
+    if (!href) {
+      this.notify(
+        infoEl,
+        `Agendamento atualizado com sucesso, mas ${destinoNome} esta sem telefone de WhatsApp cadastrado.`,
+        false,
+        { title: 'Agendamento atualizado' }
+      );
+      return;
+    }
+
+    this.notify(
+      infoEl,
+      `Agendamento atualizado com sucesso. Avise ${destinoNome} no WhatsApp sobre ${status === 'desistencia' ? 'a desistencia' : 'o cancelamento'}.`,
+      false,
+      {
+        title: 'Agendamento atualizado',
+        action: {
+          label: 'Avisar no WhatsApp',
+          href
+        }
+      }
+    );
+  },
+
   escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')

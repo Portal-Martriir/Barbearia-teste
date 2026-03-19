@@ -43,6 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let manualSelectedDate = null;
   let manualClientesCache = [];
   let manualSelectedClienteId = null;
+  let agendaRowsCache = [];
 
   if (!agendaDataInicioInput || !agendaDataFimInput || !periodoSelect || !aplicarFiltroBtn || !agendaBody || !historicoBody || !panelAgendamentos || !panelRegistro || !panelManual || !manualClienteBuscaInput || !manualClienteBuscarBtn || !manualClienteLista || !manualClienteSelecionado || !manualEmailInput || !manualTelefoneInput || !manualServicoSelect || !manualDataInput || !manualDataLabel || !manualSlots || !manualHorarioSelecionado || !manualSalvarBtn || !manualCalTitle || !manualCalGrid || !manualCalPrev || !manualCalNext) {
     window.AppUtils.notify(info, 'Elementos da agenda nao encontrados.', true);
@@ -304,10 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizePhone(value) {
-    const digits = String(value || '').replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('55')) return digits;
-    return `55${digits}`;
+    return window.AppUtils.normalizePhone(value);
   }
 
   function whatsappLink(row) {
@@ -424,6 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function refresh() {
     const rows = await loadRowsByPeriodo(barbeiroId);
+    agendaRowsCache = rows;
     renderAgenda(rows);
     renderHistorico(rows);
   }
@@ -461,18 +460,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
 
     try {
+      const row = agendaRowsCache.find((item) => String(item.id) === String(btn.dataset.id));
+      let nextStatus = null;
+      let motivo = '';
+
       if (btn.dataset.action === 'cancelar') {
         const ok = window.confirm('Confirma cancelamento deste atendimento?');
         if (!ok) return;
-        await updateStatus(btn.dataset.id, 'cancelado');
+        nextStatus = 'cancelado';
+        motivo = 'Cancelado pelo barbeiro';
+        await updateStatus(btn.dataset.id, nextStatus);
       } else if (btn.dataset.action === 'desistencia') {
         const ok = window.confirm('Confirma marcar como desistencia do cliente?');
         if (!ok) return;
-        await updateStatus(btn.dataset.id, 'desistencia_cliente');
+        nextStatus = 'desistencia_cliente';
+        motivo = 'Desistencia registrada pelo barbeiro';
+        await updateStatus(btn.dataset.id, nextStatus);
       }
 
       await refresh();
-      window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
+      if (row && nextStatus) {
+        window.AppUtils.notifyCancelamentoWhatsapp(info, {
+          status: nextStatus,
+          destinoNome: row.clientes?.nome,
+          destinoTipo: 'cliente',
+          destinoTelefone: row.clientes?.telefone,
+          servicoNome: row.servicos?.nome,
+          data: row.data,
+          hora: row.hora_inicio,
+          autorNome: user.nome || 'Barbeiro',
+          autorTipo: 'barbeiro',
+          motivo
+        });
+      } else {
+        window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
+      }
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }

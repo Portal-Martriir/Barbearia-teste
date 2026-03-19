@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabs = document.querySelectorAll('[data-status-tab]');
   let activeStatus = 'agendado';
   let cache = [];
+  let clienteNome = 'Cliente';
 
   async function requireSession() {
     const { data, error } = await window.sb.auth.getSession();
@@ -20,10 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizePhone(value) {
-    const digits = String(value || '').replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('55')) return digits;
-    return `55${digits}`;
+    return window.AppUtils.normalizePhone(value);
   }
 
   function whatsappLink(row) {
@@ -94,11 +92,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
 
     try {
+      const row = cache.find((item) => String(item.id) === String(btn.dataset.cancelId));
       const { error } = await window.sb.rpc('cancelar_agendamento_cliente', {
         p_agendamento_id: btn.dataset.cancelId
       });
       if (error) throw error;
-      window.AppUtils.notify(info, 'Agendamento cancelado com sucesso.');
+      if (row) {
+        window.AppUtils.notifyCancelamentoWhatsapp(info, {
+          status: 'cancelado',
+          destinoNome: row.barbeiro,
+          destinoTipo: 'barbeiro',
+          destinoTelefone: row.barbeiro_telefone,
+          servicoNome: row.servico,
+          data: row.data,
+          hora: row.hora_inicio,
+          autorNome: clienteNome,
+          autorTipo: 'cliente',
+          motivo: 'Cancelado pelo cliente'
+        });
+      } else {
+        window.AppUtils.notify(info, 'Agendamento cancelado com sucesso.');
+      }
       await loadData();
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -110,10 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!session) return;
 
     const profile = await window.Auth.getUserProfile();
-    const nome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
+    clienteNome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
 
     await window.CommonUI.setupLayout({
-      nome,
+      nome: clienteNome,
       email: profile?.email || session.user.email || '',
       perfil: profile?.perfil || 'cliente'
     });
