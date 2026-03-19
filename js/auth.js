@@ -1,4 +1,5 @@
 window.Auth = {
+<<<<<<< HEAD
   currentBarbeariaId() {
     return Number(window.APP_CONFIG?.FRONT_BARBEARIA_ID || 0) || null;
   },
@@ -7,6 +8,8 @@ window.Auth = {
     return String(window.APP_CONFIG?.FRONT_BARBEARIA_SLUG || '').trim();
   },
 
+=======
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
   paths() {
     const inPages = window.location.pathname.includes('/pages/');
     return {
@@ -38,16 +41,24 @@ window.Auth = {
   async getCurrentUserRole() {
     const session = await this.getSession();
     if (!session?.user?.id) return null;
+<<<<<<< HEAD
     const frontBarbeariaId = this.currentBarbeariaId();
 
     const { data, error } = await window.sb
       .from('usuarios')
       .select('id, nome, email, perfil, ativo, barbearia_id')
+=======
+
+    const { data, error } = await window.sb
+      .from('usuarios')
+      .select('id, nome, email, perfil, ativo')
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       .eq('id', session.user.id)
       .maybeSingle();
 
     if (error) throw error;
     if (data && !data.ativo) return null;
+<<<<<<< HEAD
     if (data && frontBarbeariaId && Number(data.barbearia_id) !== frontBarbeariaId) {
       await this.logout();
       throw new Error('Este usuario pertence a outra barbearia e nao pode acessar este front.');
@@ -63,6 +74,8 @@ window.Auth = {
       await this.logout();
       throw new Error('Este usuario pertence a outra barbearia e nao pode acessar este front.');
     }
+=======
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
     if (data) {
       return {
@@ -84,8 +97,17 @@ window.Auth = {
     const session = await this.getSession();
     if (!session?.user?.id) return null;
 
+<<<<<<< HEAD
     const roleData = await this.getCurrentUserRole();
     if (roleData) return roleData;
+=======
+    try {
+      const roleData = await this.getCurrentUserRole();
+      if (roleData) return roleData;
+    } catch (err) {
+      console.error('Falha ao carregar perfil em usuarios:', err);
+    }
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
     return {
       id: session.user.id,

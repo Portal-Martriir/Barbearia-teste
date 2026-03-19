@@ -36,6 +36,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   agendaDataInicioInput.value = hojeISO;
   agendaDataFimInput.value = hojeISO;
   let activeModalResolver = null;
+<<<<<<< HEAD
+=======
+  let agendaRowsCache = [];
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
   function toDateOnly(value) {
     return new Date(`${value}T00:00:00`);
@@ -242,10 +246,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizePhone(value) {
+<<<<<<< HEAD
     const digits = String(value || '').replace(/\D/g, '');
     if (!digits) return '';
     if (digits.startsWith('55')) return digits;
     return `55${digits}`;
+=======
+    return window.AppUtils.normalizePhone(value);
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
   }
 
   function whatsappLink(cliente) {
@@ -254,7 +262,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nome = String(cliente?.clientes?.nome || 'cliente').trim();
     const data = window.AppUtils.formatDate(cliente?.data);
     const hora = String(cliente?.hora_inicio || '').slice(0, 5);
+<<<<<<< HEAD
       const mensagem = `Ola, ${nome}. Aqui e da INTEGRALISSOLUCOES. Confirma seu atendimento em ${data} as ${hora}?`;
+=======
+    const mensagem = `Ola, ${nome}. Aqui e da Barberia D'sousa. Confirma seu atendimento em ${data} as ${hora}?`;
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
     return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
   }
 
@@ -384,6 +396,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       loadProximosClientes(barbeiroId)
     ]);
 
+<<<<<<< HEAD
+=======
+    agendaRowsCache = rows;
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
     renderResumoPeriodo(rows, comRows, proximosClientes);
     renderAgendaPeriodo(rows);
   }
@@ -457,8 +473,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const id = btn.dataset.id;
 
     try {
+<<<<<<< HEAD
       if (action === 'cancelar') {
         const motivo = await openReasonModal({
+=======
+      const row = agendaRowsCache.find((item) => String(item.id) === String(id));
+      let nextStatus = null;
+      let motivo = '';
+
+      if (action === 'cancelar') {
+        motivo = await openReasonModal({
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
           title: 'Cancelar atendimento',
           message: 'Informe o motivo do cancelamento deste atendimento.',
           confirmText: 'Cancelar atendimento',
@@ -466,9 +491,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         if (motivo === null) return;
 
+<<<<<<< HEAD
         await updateStatusWithValidation(id, 'cancelado', motivo);
       } else if (action === 'desistencia') {
         const motivo = await openReasonModal({
+=======
+        nextStatus = 'cancelado';
+        await updateStatusWithValidation(id, nextStatus, motivo);
+      } else if (action === 'desistencia') {
+        motivo = await openReasonModal({
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
           title: 'Registrar desistencia',
           message: 'Informe o motivo da desistencia do cliente.',
           confirmText: 'Registrar desistencia',
@@ -476,11 +508,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         if (motivo === null) return;
 
+<<<<<<< HEAD
         await updateStatusWithValidation(id, 'desistencia_cliente', motivo);
       }
 
       await refreshAll(barbeiroId);
       window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
+=======
+        nextStatus = 'desistencia_cliente';
+        await updateStatusWithValidation(id, nextStatus, motivo);
+      }
+
+      await refreshAll(barbeiroId);
+      if (row && nextStatus) {
+        window.AppUtils.notifyCancelamentoWhatsapp(info, {
+          status: nextStatus,
+          destinoNome: row.clientes?.nome,
+          destinoTipo: 'cliente',
+          destinoTelefone: row.clientes?.telefone,
+          servicoNome: row.servicos?.nome,
+          data: row.data,
+          hora: row.hora_inicio,
+          autorNome: user.nome || 'Barbeiro',
+          autorTipo: 'barbeiro',
+          motivo
+        });
+      } else {
+        window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
+      }
+>>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }
