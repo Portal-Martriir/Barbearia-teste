@@ -1,6 +1,6 @@
 -- =========================================================
--- BARBERIA D'SOUSA - SCHEMA MULTI BARBEARIA
--- Esta instalacao usa a barbearia id = 1
+-- BARBEARIA TESTE - SCHEMA MULTI BARBEARIA
+-- Esta instalacao usa a barbearia id = 2
 -- =========================================================
 
 create extension if not exists pgcrypto;
@@ -272,7 +272,21 @@ returns bigint
 language sql
 stable
 as $$
-  select 1::bigint;
+  select coalesce(
+    (
+      select b.id
+      from public.barbearias b
+      where lower(b.slug) = lower(
+        coalesce(
+          (coalesce(current_setting('request.headers', true), '{}')::json ->> 'x-barbearia-slug'),
+          ''
+        )
+      )
+        and b.ativo = true
+      limit 1
+    ),
+    2::bigint
+  );
 $$;
 
 create or replace function public.fn_minha_barbearia_id()
@@ -1452,6 +1466,7 @@ create index idx_contas_barbearia_data on public.contas_receber_manuais(barbeari
 -- RLS
 -- =========================================================
 
+alter table public.barbearias enable row level security;
 alter table public.usuarios enable row level security;
 alter table public.clientes enable row level security;
 alter table public.barbeiros enable row level security;
@@ -1467,6 +1482,10 @@ alter table public.despesas enable row level security;
 alter table public.comissoes enable row level security;
 alter table public.loja_horarios_data enable row level security;
 alter table public.loja_dias_fechados enable row level security;
+
+create policy barbearias_select on public.barbearias
+for select
+using (id = public.fn_minha_barbearia_id());
 
 create policy usuarios_select on public.usuarios
 for select
@@ -1675,7 +1694,7 @@ grant execute on function public.dashboard_admin_resumo(date, date) to authentic
 grant execute on function public.atualizar_agendamentos_atrasados() to authenticated;
 
 insert into public.barbearias (id, nome, slug)
-values (1, 'Barberia D''sousa', 'barberia-dsousa')
+values (2, 'Barbearia teste', 'barbearia-teste')
 on conflict (id) do update
   set nome = excluded.nome,
       slug = excluded.slug,
@@ -1689,7 +1708,7 @@ insert into public.configuracao_agenda (
   whatsapp_confirmacao_obrigatoria
 )
 values (
-  1,
+  2,
   '09:00',
   '19:00',
   30,

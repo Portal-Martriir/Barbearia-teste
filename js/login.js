@@ -218,16 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function redirectByRole() {
-<<<<<<< HEAD
     const userInfo = await window.Auth.getCurrentUserRole();
-=======
-    let userInfo = null;
-    try {
-      userInfo = await window.Auth.getCurrentUserRole();
-    } catch (err) {
-      userInfo = null;
-    }
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
     if (userInfo?.perfil === 'admin') {
       window.location.href = window.Auth.paths().dashboard;
@@ -253,11 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (session) {
       const redirected = await redirectByRole();
       if (!redirected) {
-<<<<<<< HEAD
         await window.Auth.logout();
-=======
-        window.location.href = './pages/cliente.html';
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       }
       return;
     }
@@ -274,12 +261,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       await window.Auth.login(email, password);
       const redirected = await redirectByRole();
       if (!redirected) {
-<<<<<<< HEAD
         await window.Auth.logout();
         throw new Error('Este usuario nao pertence a esta barbearia.');
-=======
-        window.location.href = './pages/cliente.html';
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       }
     } catch (err) {
       window.AppUtils.notify(loginInfo, err.message, true);
@@ -309,11 +292,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         password,
         options: {
           data: {
-<<<<<<< HEAD
             barbearia_id: window.Auth.currentBarbeariaId(),
             barbearia_slug: window.Auth.currentBarbeariaSlug(),
-=======
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
             telefone,
             nome: nomePadrao
           }

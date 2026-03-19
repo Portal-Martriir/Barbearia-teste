@@ -43,10 +43,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let manualSelectedDate = null;
   let manualClientesCache = [];
   let manualSelectedClienteId = null;
-<<<<<<< HEAD
-=======
   let agendaRowsCache = [];
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
   if (!agendaDataInicioInput || !agendaDataFimInput || !periodoSelect || !aplicarFiltroBtn || !agendaBody || !historicoBody || !panelAgendamentos || !panelRegistro || !panelManual || !manualClienteBuscaInput || !manualClienteBuscarBtn || !manualClienteLista || !manualClienteSelecionado || !manualEmailInput || !manualTelefoneInput || !manualServicoSelect || !manualDataInput || !manualDataLabel || !manualSlots || !manualHorarioSelecionado || !manualSalvarBtn || !manualCalTitle || !manualCalGrid || !manualCalPrev || !manualCalNext) {
     window.AppUtils.notify(info, 'Elementos da agenda nao encontrados.', true);
@@ -308,14 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizePhone(value) {
-<<<<<<< HEAD
-    const digits = String(value || '').replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('55')) return digits;
-    return `55${digits}`;
-=======
     return window.AppUtils.normalizePhone(value);
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
   }
 
   function whatsappLink(row) {
@@ -324,11 +314,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const nome = String(row.clientes?.nome || 'cliente').trim();
     const data = window.AppUtils.formatDate(row.data);
     const hora = String(row.hora_inicio || '').slice(0, 5);
-<<<<<<< HEAD
-      const mensagem = `Ola, ${nome}. Aqui e da INTEGRALISSOLUCOES. Confirma seu atendimento em ${data} as ${hora}?`;
-=======
-    const mensagem = `Ola, ${nome}. Aqui e da Barberia D'sousa. Confirma seu atendimento em ${data} as ${hora}?`;
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
+    const mensagem = `Ola, ${nome}. Aqui e da Barbearia teste. Confirma seu atendimento em ${data} as ${hora}?`;
     return `https://wa.me/${phone}?text=${encodeURIComponent(mensagem)}`;
   }
 
@@ -436,10 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function refresh() {
     const rows = await loadRowsByPeriodo(barbeiroId);
-<<<<<<< HEAD
-=======
     agendaRowsCache = rows;
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
     renderAgenda(rows);
     renderHistorico(rows);
   }
@@ -477,20 +460,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
 
     try {
-<<<<<<< HEAD
-      if (btn.dataset.action === 'cancelar') {
-        const ok = window.confirm('Confirma cancelamento deste atendimento?');
-        if (!ok) return;
-        await updateStatus(btn.dataset.id, 'cancelado');
-      } else if (btn.dataset.action === 'desistencia') {
-        const ok = window.confirm('Confirma marcar como desistencia do cliente?');
-        if (!ok) return;
-        await updateStatus(btn.dataset.id, 'desistencia_cliente');
-      }
-
-      await refresh();
-      window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
-=======
       const row = agendaRowsCache.find((item) => String(item.id) === String(btn.dataset.id));
       let nextStatus = null;
       let motivo = '';
@@ -526,7 +495,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         window.AppUtils.notify(info, 'Agendamento atualizado com sucesso.');
       }
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
     }

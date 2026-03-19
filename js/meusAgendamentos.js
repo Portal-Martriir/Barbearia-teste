@@ -4,10 +4,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabs = document.querySelectorAll('[data-status-tab]');
   let activeStatus = 'agendado';
   let cache = [];
-<<<<<<< HEAD
-=======
   let clienteNome = 'Cliente';
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
 
   async function requireSession() {
     const { data, error } = await window.sb.auth.getSession();
@@ -24,14 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function normalizePhone(value) {
-<<<<<<< HEAD
-    const digits = String(value || '').replace(/\D/g, '');
-    if (!digits) return '';
-    if (digits.startsWith('55')) return digits;
-    return `55${digits}`;
-=======
     return window.AppUtils.normalizePhone(value);
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
   }
 
   function whatsappLink(row) {
@@ -102,17 +92,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!btn) return;
 
     try {
-<<<<<<< HEAD
-=======
       const row = cache.find((item) => String(item.id) === String(btn.dataset.cancelId));
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       const { error } = await window.sb.rpc('cancelar_agendamento_cliente', {
         p_agendamento_id: btn.dataset.cancelId
       });
       if (error) throw error;
-<<<<<<< HEAD
-      window.AppUtils.notify(info, 'Agendamento cancelado com sucesso.');
-=======
       if (row) {
         window.AppUtils.notifyCancelamentoWhatsapp(info, {
           status: 'cancelado',
@@ -129,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         window.AppUtils.notify(info, 'Agendamento cancelado com sucesso.');
       }
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       await loadData();
     } catch (err) {
       window.AppUtils.notify(info, err.message, true);
@@ -141,17 +124,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!session) return;
 
     const profile = await window.Auth.getUserProfile();
-<<<<<<< HEAD
-    const nome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
-
-    await window.CommonUI.setupLayout({
-      nome,
-=======
     clienteNome = profile?.nome || session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Cliente';
 
     await window.CommonUI.setupLayout({
       nome: clienteNome,
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
       email: profile?.email || session.user.email || '',
       perfil: profile?.perfil || 'cliente'
     });

@@ -40,8 +40,6 @@ window.AppUtils = {
     return new Date(`${dateStr}T${timeStr}`);
   },
 
-<<<<<<< HEAD
-=======
   normalizePhone(value) {
     const digits = String(value || '').replace(/\D/g, '');
     if (!digits) return '';
@@ -94,8 +92,6 @@ window.AppUtils = {
       }
     );
   },
-
->>>>>>> d0f9f3ef22f51e9fca231d2341c22e4476c7131b
   escapeHtml(value) {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
